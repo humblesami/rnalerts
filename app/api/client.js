@@ -1,7 +1,7 @@
 import { create } from 'apisauce';
 
 const apiClient = create({
-    baseURL: 'http://192.168.1.4:9000/api'
+    baseURL: 'http://0.0.0.0:9000/api' // Use your local network IP
 })
 
 export default apiClient;
