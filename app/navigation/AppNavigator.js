@@ -22,9 +22,18 @@ const AppNavigator = () => {
     const notificationListener = useRef();
     const responseListener = useRef();
 
+
+    console.log('111');
+
     useEffect(() => {
         // Get a token
-        registerForPushNotificationsAsync().then(token => expoPushTokensApi.register(token));
+        console.log('222');
+        registerForPushNotificationsAsync().then(token => {
+            console.log('token');
+            console.log(token);
+            console.log('token');
+            return expoPushTokensApi.register(token);
+        });
 
         // This listener is fired whenever a notification is received while the app is foregrounded
         notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
@@ -54,6 +63,7 @@ const AppNavigator = () => {
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
 
+
         if (existingStatus !== 'granted') {
             const { status } = await Notifications.requestPermissionsAsync();
             finalStatus = status;
@@ -62,8 +72,11 @@ const AppNavigator = () => {
             alert('Failed to get push token for push notification!');
             return;
         }
+        console.log('Will get totken');
         token = (await Notifications.getExpoPushTokenAsync()).data;
+        console.log('Geting token');
         console.log(token);
+        console.log('status');
 
         return token;
     }

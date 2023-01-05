@@ -43,6 +43,7 @@
     "expo-location": "~14.2.2",
     "expo-notifications": "~0.15.2",
     "expo-permissions": "~13.2.0",
+    "expo-updates": "~0.13.4",
     "faker": "^5.1.0",
     "formik": "^2.1.4",
     "global": "^4.4.0",
