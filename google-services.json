@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "73583736741",
+    "project_id": "push-4cb3e",
+    "storage_bucket": "push-4cb3e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:73583736741:android:830cd3a1473e3620695a4c",
+        "android_client_info": {
+          "package_name": "com.channel92news.push"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "73583736741-4eesb9rb7c4l3hnf2f9tspcicet19v7h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCU_U7npSZwnii-2__id6TY86laX0pAzdg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "73583736741-4eesb9rb7c4l3hnf2f9tspcicet19v7h.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

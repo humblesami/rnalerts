@@ -1,6 +1,8 @@
 # Done-With-It-App
-A React Native app for students to sell properties they have no use for 
+A React Native app for students to sell properties they have no use for
 
+# Backend
+https://github.com/humblesami/nodepushapi
 
 ## How to run this project?
 

@@ -12,9 +12,9 @@ import NewListingButton from './NewListingButton';
 const Tab = createBottomTabNavigator();
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true
-  }),
+    handleNotification: async () => ({
+        shouldShowAlert: true
+    }),
 });
 
 const AppNavigator = () => {
@@ -24,8 +24,7 @@ const AppNavigator = () => {
 
     useEffect(() => {
         // Get a token
-        registerForPushNotificationsAsync()
-            .then(token => expoPushTokensApi.register(token));
+        registerForPushNotificationsAsync().then(token => expoPushTokensApi.register(token));
 
         // This listener is fired whenever a notification is received while the app is foregrounded
         notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
@@ -69,39 +68,39 @@ const AppNavigator = () => {
         return token;
     }
 
-  return (
-    <Tab.Navigator>
-      <Tab.Screen
-        name="Feed"
-        component={FeedNavigator}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="ListingEdit"
-        component={ListingEditScreen}
-        options={({ navigation }) => ({
-          tabBarButton: () =>
-            <NewListingButton onPress={() => navigation.navigate('ListingEdit')} />,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="plus-circle" color={color} size={size} />
-          ),
-        })}
-      />
-      <Tab.Screen
-        name="Account"
-        component={AccountNavigator}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account" color={color} size={size} />
-          ),
-        }}
-      />
-    </Tab.Navigator>
-  );
+    return (
+        <Tab.Navigator>
+            <Tab.Screen
+                name="Feed"
+                component={FeedNavigator}
+                options={{
+                    tabBarIcon: ({ color, size }) => (
+                        <MaterialCommunityIcons name="home" color={color} size={size} />
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="ListingEdit"
+                component={ListingEditScreen}
+                options={({ navigation }) => ({
+                    tabBarButton: () =>
+                        <NewListingButton onPress={() => navigation.navigate('ListingEdit')} />,
+                    tabBarIcon: ({ color, size }) => (
+                        <MaterialCommunityIcons name="plus-circle" color={color} size={size} />
+                    ),
+                })}
+            />
+            <Tab.Screen
+                name="Account"
+                component={AccountNavigator}
+                options={{
+                    tabBarIcon: ({ color, size }) => (
+                        <MaterialCommunityIcons name="account" color={color} size={size} />
+                    ),
+                }}
+            />
+        </Tab.Navigator>
+    );
 };
 
 export default AppNavigator;
