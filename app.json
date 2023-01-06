@@ -1,32 +1,38 @@
 {
-  "expo": {
-    "name": "DoneWithIt",
-    "slug": "DoneWithIt",
-    "platforms": [
-      "ios",
-      "android",
-      "web"
-    ],
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "",
-    "splash": {
-      "image": "",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "updates": {
-      "fallbackToCacheTimeout": 0
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "android": {
-        "package": "com.channel92news.push",
-        "googleServicesFile": "./google-services.json"
-    },
-    "ios": {
-      "supportsTablet": true
+    "expo": {
+        "name": "DoneWithIt",
+        "slug": "DoneWithIt",
+        "platforms": [
+            "ios",
+            "android",
+            "web"
+        ],
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "",
+        "splash": {
+            "image": "",
+            "resizeMode": "contain",
+            "backgroundColor": "#ffffff"
+        },
+        "updates": {
+            "fallbackToCacheTimeout": 0
+        },
+        "assetBundlePatterns": [
+            "**/*"
+        ],
+        "android": {
+            "package": "com.channel92news.push",
+            "googleServicesFile": "./google-services.json"
+        },
+        "ios": {
+            "supportsTablet": true
+        },
+        "extra": {
+            "eas": {
+                "projectId": "push-4cb3e",
+                "default_projectId": "0dad8d7a-9fe5-40b3-8589-eafca5273909"
+            }
+        }
     }
-  }
 }

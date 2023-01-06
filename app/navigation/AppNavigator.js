@@ -72,13 +72,17 @@ const AppNavigator = () => {
             alert('Failed to get push token for push notification!');
             return;
         }
-        console.log('Will get totken');
-        token = (await Notifications.getExpoPushTokenAsync()).data;
         console.log('Geting token');
-        console.log(token);
-        console.log('status');
-
-        return token;
+        return Notifications.getExpoPushTokenAsync(res => {
+            console.log('Got res');
+            console.log(res);
+            console.log(res.data);
+            let token = res.data;
+            console.log('Got token');
+            console.log(token);
+            console.log('Token');
+            return token;
+        })
     }
 
     return (
