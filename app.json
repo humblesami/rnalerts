@@ -26,7 +26,8 @@
       "googleServicesFile": "./google-services.json"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.channel92news.push"
     },
     "extraa1": {
       "eas": {

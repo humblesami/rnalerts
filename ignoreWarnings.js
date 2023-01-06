@@ -6,6 +6,7 @@ if (__DEV__) {
         // "[fuego-swr-keys-from-collection-path]",
         // "Setting a timer for a long period of time",
         "ViewPropTypes will be removed from React Native",
+        "Stack Navigator",
         // "AsyncStorage has been extracted from react-native",
         // "exported from 'deprecated-react-native-prop-types'.",
         // "Non-serializable values were found in the navigation state.",
