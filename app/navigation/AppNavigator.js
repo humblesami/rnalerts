@@ -22,18 +22,21 @@ const AppNavigator = () => {
     const notificationListener = useRef();
     const responseListener = useRef();
 
-
-    console.log('111');
-
     useEffect(() => {
         // Get a token
-        console.log('222');
-        registerForPushNotificationsAsync().then(token => {
-            console.log('token');
-            console.log(token);
-            console.log('token');
-            return expoPushTokensApi.register(token);
-        });
+
+        try{
+            registerForPushNotificationsAsync().then(pushToken => {
+                expoPushTokensApi.register(pushToken);
+                alert('Got token '+pushToken);
+            }).catch(er=>{
+                alert('Could not registerPushNotificationsAsync');
+            });
+        }
+        catch(err){
+            alert('Could not registerPushNotificationsAsync-1');
+        }
+
 
         // This listener is fired whenever a notification is received while the app is foregrounded
         notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
@@ -55,34 +58,33 @@ const AppNavigator = () => {
             Notifications.removeNotificationSubscription(notificationListener.current);
             Notifications.removeNotificationSubscription(responseListener.current);
         };
+
     }, []);
 
     async function registerForPushNotificationsAsync() {
-        let token;
+        try{
+            const { status: existingStatus } = await Notifications.getPermissionsAsync();
+            let finalStatus = existingStatus;
 
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
 
+            if (existingStatus !== 'granted') {
+                const { status } = await Notifications.requestPermissionsAsync();
+                finalStatus = status;
+            }
+            if (finalStatus !== 'granted') {
+                alert('Failed to get push token for push notification!');
+                return;
+            }
 
-        if (existingStatus !== 'granted') {
-            const { status } = await Notifications.requestPermissionsAsync();
-            finalStatus = status;
-        }
-        if (finalStatus !== 'granted') {
-            alert('Failed to get push token for push notification!');
-            return;
-        }
-        console.log('Geting token');
-        return Notifications.getExpoPushTokenAsync(res => {
-            console.log('Got res');
-            console.log(res);
-            console.log(res.data);
+            let res = await Notifications.getExpoPushTokenAsync()
             let token = res.data;
-            console.log('Got token');
-            console.log(token);
-            console.log('Token');
             return token;
-        })
+        }
+        catch(er){
+            console.log(er);
+            alert('Error in registerPushNotificationsAsync-0');
+            return '';
+        }
     }
 
     return (
