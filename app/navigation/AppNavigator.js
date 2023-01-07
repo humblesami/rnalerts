@@ -11,6 +11,8 @@ import NewListingButton from './NewListingButton';
 
 const Tab = createBottomTabNavigator();
 
+import { View, Text } from 'react-native';
+
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
         shouldShowAlert: true
@@ -28,9 +30,8 @@ const AppNavigator = () => {
         try{
             registerForPushNotificationsAsync().then(pushToken => {
                 expoPushTokensApi.register(pushToken);
-                alert('Got token '+pushToken);
             }).catch(er=>{
-                alert('Could not registerPushNotificationsAsync');
+                //alert('Could not registerPushNotificationsAsync');
             });
         }
         catch(err){
@@ -95,26 +96,6 @@ const AppNavigator = () => {
                 options={{
                     tabBarIcon: ({ color, size }) => (
                         <MaterialCommunityIcons name="home" color={color} size={size} />
-                    ),
-                }}
-            />
-            <Tab.Screen
-                name="ListingEdit"
-                component={ListingEditScreen}
-                options={({ navigation }) => ({
-                    tabBarButton: () =>
-                        <NewListingButton onPress={() => navigation.navigate('ListingEdit')} />,
-                    tabBarIcon: ({ color, size }) => (
-                        <MaterialCommunityIcons name="plus-circle" color={color} size={size} />
-                    ),
-                })}
-            />
-            <Tab.Screen
-                name="Account"
-                component={AccountNavigator}
-                options={{
-                    tabBarIcon: ({ color, size }) => (
-                        <MaterialCommunityIcons name="account" color={color} size={size} />
                     ),
                 }}
             />
