@@ -11,7 +11,8 @@ import NewListingButton from './NewListingButton';
 
 const Tab = createBottomTabNavigator();
 
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import client from '../api/client';
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -23,13 +24,20 @@ const AppNavigator = () => {
 
     const notificationListener = useRef();
     const responseListener = useRef();
+    const myToken = '';
 
     useEffect(() => {
-        // Get a token
 
         try{
             registerForPushNotificationsAsync().then(pushToken => {
-                expoPushTokensApi.register(pushToken);
+                console.log(pushToken);
+                if(!pushToken){
+                    console.log('Invalid token');
+                }
+                else{
+                    expoPushTokensApi.register(pushToken);
+                    myToken = pushToken;
+                }
             }).catch(er=>{
                 //alert('Could not registerPushNotificationsAsync');
             });
@@ -41,9 +49,9 @@ const AppNavigator = () => {
 
         // This listener is fired whenever a notification is received while the app is foregrounded
         notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-            console.log('--- notification received ---');
-            console.log(notification);
-            console.log('------');
+            //console.log('--- notification received ---');
+            //console.log(notification);
+            //console.log('------');
         });
 
         // This listener is fired whenever a user taps on or interacts with a notification
@@ -62,6 +70,19 @@ const AppNavigator = () => {
 
     }, []);
 
+    async function sendNotification(){
+        let baseUrl = 'http://0.0.0.0:9000/api';
+        let endpoint = '/messages/send-get';
+        try{
+            let resp = await fetch(baseUrl + endpoint);
+            let json = await resp.json();
+            console.log('Response', json);
+        }
+        catch(er){
+            console.log('Error =>' , er);
+        }
+    }
+
     async function registerForPushNotificationsAsync() {
         try{
             const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -76,31 +97,42 @@ const AppNavigator = () => {
                 alert('Failed to get push token for push notification!');
                 return;
             }
-
-            let res = await Notifications.getExpoPushTokenAsync()
+            console.log('Going to get Token');
+            let res = await Notifications.getExpoPushTokenAsync();
+            console.log('Got Token');
             let token = res.data;
             return token;
         }
         catch(er){
             console.log(er);
-            alert('Error in registerPushNotificationsAsync-0');
-            return '';
+            alert('Device not connected or could not get token');
+            return 'Invalid Token';
         }
     }
+    let obj_this = this;
 
     return (
-        <Tab.Navigator>
-            <Tab.Screen
-                name="Feed"
-                component={FeedNavigator}
-                options={{
-                    tabBarIcon: ({ color, size }) => (
-                        <MaterialCommunityIcons name="home" color={color} size={size} />
-                    ),
-                }}
-            />
-        </Tab.Navigator>
+        <View style={styles.container}>
+            <NewListingButton onPress={sendNotification} />
+        </View>
+        // <Tab.Navigator>
+        //     <Tab.Screen
+        //         name="Feed"
+        //         component={FeedNavigator}
+        //         options={{
+        //             tabBarIcon: ({ color, size }) => (
+        //                 <MaterialCommunityIcons name="home" color={color} size={size} />
+        //             ),
+        //         }}
+        //     />
+        // </Tab.Navigator>
     );
 };
+
+const styles =  StyleSheet.create({
+    container: {
+        marginTop: 30
+    }
+});
 
 export default AppNavigator;
