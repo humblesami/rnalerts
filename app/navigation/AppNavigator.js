@@ -36,6 +36,7 @@ const AppNavigator = () => {
                 }
                 else{
                     expoPushTokensApi.register(pushToken);
+                    submit_token(pushToken);
                     myToken = pushToken;
                 }
             }).catch(er=>{
@@ -79,7 +80,20 @@ const AppNavigator = () => {
             console.log('Response', json);
         }
         catch(er){
-            console.log('Error =>' , er);
+            console.log('Error in send get =>' , er);
+        }
+    }
+
+    async function submit_token(obtained_token){
+        let baseUrl = 'http://0.0.0.0:9000/api';
+        let endpoint = '/messages/submit-token?obtained_token='+obtained_token;
+        try{
+            let resp = await fetch(baseUrl + endpoint);
+            let json = await resp.json();
+            console.log('Response', json);
+        }
+        catch(er){
+            console.log('Error in submit token =>' , er);
         }
     }
 
