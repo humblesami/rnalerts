@@ -2,7 +2,8 @@ import { LogBox } from "react-native";
 
 if (__DEV__) {
     const ignoreWarns = [
-        // "EventEmitter.removeListener",
+        "EventEmitter.removeListener",
+        "EventEmitter.addListener",
         // "[fuego-swr-keys-from-collection-path]",
         // "Setting a timer for a long period of time",
         "ViewPropTypes will be removed from React Native",

@@ -1,10 +1,9 @@
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Notifications from 'expo-notifications';
 import expoPushTokensApi from '../api/expoPushTokens';
 import NewListingButton from './NewListingButton';
-
-const Tab = createBottomTabNavigator();
+import SoundPlayer from 'react-native-sound-player';
+//import BackgroundTimer from 'react-native-background-timer';
 
 import { View, Text, StyleSheet } from 'react-native';
 Notifications.setNotificationHandler({
@@ -12,6 +11,20 @@ Notifications.setNotificationHandler({
         shouldShowAlert: true
     }),
 });
+
+// var goes_counted = 0;
+// BackgroundTimer.runBackgroundTimer(() => {
+//     goes_counted += 1;
+//     console.log('cnt=>'+goes_counted);
+//     if(goes_counted >= 5){
+//         BackgroundTimer.stopBackgroundTimer();
+//     }
+//     else{
+//         SoundPlayer.playSoundFile('beep', 'mp3');
+//     }
+// },
+// 4000);
+
 
 export default class AppNavigator extends React.Component {
     notificationListener = {}
@@ -36,6 +49,7 @@ export default class AppNavigator extends React.Component {
                     expoPushTokensApi.register(pushToken);
                     obj_this.submit_token(pushToken);
                     obj_this.myToken = pushToken;
+                    obj_this.playSound();
                 }
             }).catch(er=>{
                 setState(() => {
@@ -55,8 +69,7 @@ export default class AppNavigator extends React.Component {
         // This listener is fired whenever a notification is received while the app is foregrounded
         obj_this.notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
             //console.log('--- notification received ---');
-            //console.log(notification);
-            //console.log('------');
+            obj_this.playSound();
         });
 
         // This listener is fired whenever a user taps on or interacts with a notification
@@ -72,7 +85,10 @@ export default class AppNavigator extends React.Component {
             Notifications.removeNotificationSubscription(obj_this.notificationListener.current);
             Notifications.removeNotificationSubscription(obj_this.responseListener.current);
         };
+    }
 
+    playSound() {
+        SoundPlayer.playSoundFile('beep', 'mp3');
     }
 
     async sendNotification(){
@@ -116,16 +132,14 @@ export default class AppNavigator extends React.Component {
                 alert('Failed to get push token for push notification!');
                 return;
             }
-            console.log('Going to get Token');
             let res = await Notifications.getExpoPushTokenAsync();
-            console.log('Got Token');
             let token = res.data;
             return token;
         }
         catch(er){
-            console.log(er);
-            alert('Device not connected or could not get token');
-            return 'Invalid Token';
+            let message = ('Device not connected or could not get token =>' + '' + er);
+            this.setState({error_message: message});
+            return message;
         }
     }
 
@@ -142,17 +156,6 @@ export default class AppNavigator extends React.Component {
             <View style={styles.container}>
                 <NewListingButton onPress={obj_this.sendNotification} />
             </View>
-            // <Tab.Navigator>
-            //     <Tab.Screen
-            //         name="Feed"
-            //         component={FeedNavigator}
-            //         options={{
-            //             tabBarIcon: ({ color, size }) => (
-            //                 <MaterialCommunityIcons name="home" color={color} size={size} />
-            //             ),
-            //         }}
-            //     />
-            // </Tab.Navigator>
         );
     }
 }
