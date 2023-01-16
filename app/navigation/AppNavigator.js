@@ -1,55 +1,59 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
-
-import ListingEditScreen from "../screens/ListingEditScreen";
-import FeedNavigator from './FeedNavigator';
-import AccountNavigator from './AccountNavigator';
 import expoPushTokensApi from '../api/expoPushTokens';
 import NewListingButton from './NewListingButton';
 
 const Tab = createBottomTabNavigator();
 
 import { View, Text, StyleSheet } from 'react-native';
-import client from '../api/client';
-
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
         shouldShowAlert: true
     }),
 });
 
-const AppNavigator = () => {
-
-    const notificationListener = useRef();
-    const responseListener = useRef();
-    const myToken = '';
-
-    useEffect(() => {
-
+export default class AppNavigator extends React.Component {
+    notificationListener = {}
+    responseListener = {};
+    myToken = '';
+    constructor(){
+        super();
+        this.state = {
+            error_message: ''
+        };
+    }
+    componentDidMount() {
+        let obj_this = this;
         try{
-            registerForPushNotificationsAsync().then(pushToken => {
+            this.registerForPushNotificationsAsync().then(pushToken => {
                 console.log(pushToken);
                 if(!pushToken){
-                    console.log('Invalid token');
+                    let message = 'Invalid Token';
+                    obj_this.setState({error_message: message});
                 }
                 else{
                     expoPushTokensApi.register(pushToken);
-                    submit_token(pushToken);
-                    myToken = pushToken;
+                    obj_this.submit_token(pushToken);
+                    obj_this.myToken = pushToken;
                 }
             }).catch(er=>{
-                //alert('Could not registerPushNotificationsAsync');
+                setState(() => {
+                    let message = ('Could not registerPushNotificationsAsync-1');
+                    obj_this.setState({error_message: message});
+                });
             });
         }
         catch(err){
-            alert('Could not registerPushNotificationsAsync-1');
+            setState(() => {
+                let message = ('Could not registerPushNotificationsAsync-2');
+                obj_this.setState({error_message: message});
+            });
         }
 
 
         // This listener is fired whenever a notification is received while the app is foregrounded
-        notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+        obj_this.notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
             //console.log('--- notification received ---');
             //console.log(notification);
             //console.log('------');
@@ -57,7 +61,7 @@ const AppNavigator = () => {
 
         // This listener is fired whenever a user taps on or interacts with a notification
         // (works when app is foregrounded, backgrounded, or killed)
-        responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+        obj_this.responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             console.log('--- notification tapped ---');
             console.log(response);
             console.log('------');
@@ -65,13 +69,13 @@ const AppNavigator = () => {
 
         // Unsubscribe from events
         return () => {
-            Notifications.removeNotificationSubscription(notificationListener.current);
-            Notifications.removeNotificationSubscription(responseListener.current);
+            Notifications.removeNotificationSubscription(obj_this.notificationListener.current);
+            Notifications.removeNotificationSubscription(obj_this.responseListener.current);
         };
 
-    }, []);
+    }
 
-    async function sendNotification(){
+    async sendNotification(){
         let baseUrl = 'http://0.0.0.0:9000/api';
         let endpoint = '/messages/send-get';
         try{
@@ -84,7 +88,7 @@ const AppNavigator = () => {
         }
     }
 
-    async function submit_token(obtained_token){
+    async submit_token(obtained_token){
         let baseUrl = 'http://0.0.0.0:9000/api';
         let endpoint = '/messages/submit-token?obtained_token='+obtained_token;
         try{
@@ -93,11 +97,12 @@ const AppNavigator = () => {
             console.log('Response', json);
         }
         catch(er){
-            console.log('Error in submit token =>' , er);
+            let message = ('Error in submit token =>' + '' + er);
+            this.setState({error_message: message});
         }
     }
 
-    async function registerForPushNotificationsAsync() {
+    async registerForPushNotificationsAsync() {
         try{
             const { status: existingStatus } = await Notifications.getPermissionsAsync();
             let finalStatus = existingStatus;
@@ -123,30 +128,39 @@ const AppNavigator = () => {
             return 'Invalid Token';
         }
     }
-    let obj_this = this;
 
-    return (
-        <View style={styles.container}>
-            <NewListingButton onPress={sendNotification} />
-        </View>
-        // <Tab.Navigator>
-        //     <Tab.Screen
-        //         name="Feed"
-        //         component={FeedNavigator}
-        //         options={{
-        //             tabBarIcon: ({ color, size }) => (
-        //                 <MaterialCommunityIcons name="home" color={color} size={size} />
-        //             ),
-        //         }}
-        //     />
-        // </Tab.Navigator>
-    );
-};
+    render(){
+        let obj_this = this;
+        if(obj_this.state.error_message){
+            return (
+                <View style={styles.container}>
+                    <Text>{obj_this.state.error_message}</Text>
+                </View>
+            );
+        }
+        return (
+            <View style={styles.container}>
+                <NewListingButton onPress={obj_this.sendNotification} />
+            </View>
+            // <Tab.Navigator>
+            //     <Tab.Screen
+            //         name="Feed"
+            //         component={FeedNavigator}
+            //         options={{
+            //             tabBarIcon: ({ color, size }) => (
+            //                 <MaterialCommunityIcons name="home" color={color} size={size} />
+            //             ),
+            //         }}
+            //     />
+            // </Tab.Navigator>
+        );
+    }
+}
 
 const styles =  StyleSheet.create({
     container: {
-        marginTop: 30
+        marginTop: 30,
+        padding: 10
     }
 });
 
-export default AppNavigator;

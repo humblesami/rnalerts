@@ -26,10 +26,9 @@ const styles =  StyleSheet.create({
         borderWidth: 10,
         borderRadius: 37,
         height: 75,
-        bottom: 30,
         justifyContent: 'center',
         width: 75,
-        
+
   }
 });
 
