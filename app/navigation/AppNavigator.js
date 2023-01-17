@@ -15,12 +15,12 @@ Notifications.setNotificationHandler({
 export default class AppNavigator extends React.Component {
     notificationListener = {}
     responseListener = {};
-    myToken = '';
     constructor(){
         super();
         this.state = {
+            expoToken: '',
             error_message: '',
-            latest_note_id: ''
+            alert_types: [],
         };
     }
     componentDidMount() {
@@ -35,8 +35,6 @@ export default class AppNavigator extends React.Component {
                 else{
                     expoPushTokensApi.register(pushToken);
                     obj_this.submit_token(pushToken);
-                    obj_this.myToken = pushToken;
-                    obj_this.playSound();
                 }
             }).catch(er=>{
                 setState(() => {
@@ -64,7 +62,6 @@ export default class AppNavigator extends React.Component {
         obj_this.responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             let category_id = response.notification.request.content.categoryIdentifier;
             console.log('--- notification here ---' + category_id);
-             obj_this.setState({latest_note_id: category_id});
         });
 
         // Unsubscribe from events
@@ -91,14 +88,21 @@ export default class AppNavigator extends React.Component {
         }
     }
 
-    async stopNotification(){
-        let baseUrl = 'http://0.0.0.0:9000/api';
-        let endpoint = '/messages/stop?note_id='+ obj_this.latest_note_id;
+    async stopNotification(alert_id){
+        let obj_this = this;
         try{
+            let alert_index = obj_this.state.alert_types.indexOf(alert_id);
+            if(alert_index == -1){
+                return;
+            }
+            let baseUrl = 'http://0.0.0.0:9000/api';
+            let endpoint = '/messages/stop?note_id='+ alert_id+'&device_token='+obj_this.state.expoToken;
             let resp = await fetch(baseUrl + endpoint);
             let json = await resp.json();
             if(json.status == 'success'){
-                obj_this.setState({latest_note_id: ''});
+
+                obj_this.state.alert_types.splice(alert_index, 1);
+                obj_this.setState({alert_types: obj_this.state.alert_types});
             }
         }
         catch(er){
@@ -108,15 +112,17 @@ export default class AppNavigator extends React.Component {
     }
 
     async submit_token(obtained_token){
+        let obj_this = this;
         let baseUrl = 'http://0.0.0.0:9000/api';
         let endpoint = '/messages/submit-token?obtained_token='+obtained_token;
         try{
             let resp = await fetch(baseUrl + endpoint);
             let json = await resp.json();
-            console.log('Response', json);
+            console.log(2222, json.active_alert_types.length);
+            obj_this.setState({expoToken: obtained_token, alert_types: json.active_alert_types});
         }
         catch(er){
-            let message = ('Error in submit token =>' + '' + er);
+            let message = ('Error in submit token => ' + '' + er);
             this.setState({error_message: message});
         }
     }
@@ -164,20 +170,41 @@ export default class AppNavigator extends React.Component {
             );
         }
         function get_stop_btn(){
-            if(obj_this.state.latest_note_id){
-                return (<View style={styles.btnstyle}>
-                    <Button
-                        title="Stop Notification"
-                        onPress={obj_this.stopNotification}
-                    />
-                </View>);
-            }
-            else{
+            let items_list = obj_this.state.alert_types;
+            console.log(1111, items_list.length, obj_this.state.expoToken);
+            if(items_list.length){
                 return(
-                    <Text>No active notifications</Text>
+                    <View>
+                        {
+                            items_list.map(function(item, j) {
+                                let title = "Stop alerts => " + item;
+                                return(
+                                    <View key={j} style={styles.btnstyle}>
+                                        <Button
+                                            title={title}
+                                            onPress={() => {
+                                                obj_this.stopNotification(item);
+                                            }}
+                                        />
+                                    </View>
+                                )
+                            })
+                        }
+                    </View>
                 );
             }
+            else{
+                if(obj_this.state.expoToken){
+                    return(
+                        <Text>No active notifications</Text>
+                    );
+                }
+                else{
+                    <Text>Registering Token at server...</Text>
+                }
+            }
         }
+
         return (
             <View style={styles.container}>
                 {get_stop_btn()}
