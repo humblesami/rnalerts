@@ -8,7 +8,8 @@ import SoundPlayer from 'react-native-sound-player';
 import { View, Text, StyleSheet } from 'react-native';
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
-        shouldShowAlert: true
+        shouldShowAlert: true,
+        shouldPlaySound: true,
     }),
 });
 
@@ -120,6 +121,14 @@ export default class AppNavigator extends React.Component {
 
     async registerForPushNotificationsAsync() {
         try{
+            if (Platform.OS === 'android') {
+                await Notifications.setNotificationChannelAsync('down_alerts', {
+                    name: 'down_alerts',
+                    importance: Notifications.AndroidImportance.MAX,
+                    vibrationPattern: [0, 250, 250, 250],
+                    lightColor: '#FF231F7C',
+                });
+            }
             const { status: existingStatus } = await Notifications.getPermissionsAsync();
             let finalStatus = existingStatus;
 
