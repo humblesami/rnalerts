@@ -1,30 +1,15 @@
 import React from 'react';
 import * as Notifications from 'expo-notifications';
 import expoPushTokensApi from '../api/expoPushTokens';
-import NewListingButton from './NewListingButton';
 import SoundPlayer from 'react-native-sound-player';
-//import BackgroundTimer from 'react-native-background-timer';
 
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Button, StyleSheet } from 'react-native';
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
         shouldShowAlert: true,
         shouldPlaySound: true,
     }),
 });
-
-// var goes_counted = 0;
-// BackgroundTimer.runBackgroundTimer(() => {
-//     goes_counted += 1;
-//     console.log('cnt=>'+goes_counted);
-//     if(goes_counted >= 5){
-//         BackgroundTimer.stopBackgroundTimer();
-//     }
-//     else{
-//         SoundPlayer.playSoundFile('beep', 'mp3');
-//     }
-// },
-// 4000);
 
 
 export default class AppNavigator extends React.Component {
@@ -34,7 +19,8 @@ export default class AppNavigator extends React.Component {
     constructor(){
         super();
         this.state = {
-            error_message: ''
+            error_message: '',
+            latest_note_id: ''
         };
     }
     componentDidMount() {
@@ -69,16 +55,16 @@ export default class AppNavigator extends React.Component {
 
         // This listener is fired whenever a notification is received while the app is foregrounded
         obj_this.notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-            //console.log('--- notification received ---');
-            obj_this.playSound();
+            console.log('--- notification received ---');
+            //obj_this.playSound();
         });
 
         // This listener is fired whenever a user taps on or interacts with a notification
         // (works when app is foregrounded, backgrounded, or killed)
         obj_this.responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-            console.log('--- notification tapped ---');
-            console.log(response);
-            console.log('------');
+            let category_id = response.notification.request.content.categoryIdentifier;
+            console.log('--- notification here ---' + category_id);
+             obj_this.setState({latest_note_id: category_id});
         });
 
         // Unsubscribe from events
@@ -94,7 +80,7 @@ export default class AppNavigator extends React.Component {
 
     async sendNotification(){
         let baseUrl = 'http://0.0.0.0:9000/api';
-        let endpoint = '/messages/send-get';
+        let endpoint = '/messages/send';
         try{
             let resp = await fetch(baseUrl + endpoint);
             let json = await resp.json();
@@ -102,6 +88,22 @@ export default class AppNavigator extends React.Component {
         }
         catch(er){
             console.log('Error in send get =>' , er);
+        }
+    }
+
+    async stopNotification(){
+        let baseUrl = 'http://0.0.0.0:9000/api';
+        let endpoint = '/messages/stop?note_id='+ obj_this.latest_note_id;
+        try{
+            let resp = await fetch(baseUrl + endpoint);
+            let json = await resp.json();
+            if(json.status == 'success'){
+                obj_this.setState({latest_note_id: ''});
+            }
+        }
+        catch(er){
+            let message = ('Error in stop => ' + er);
+            this.setState({error_message: message});
         }
     }
 
@@ -161,9 +163,24 @@ export default class AppNavigator extends React.Component {
                 </View>
             );
         }
+        function get_stop_btn(){
+            if(obj_this.state.latest_note_id){
+                return (<View style={styles.btnstyle}>
+                    <Button
+                        title="Stop Notification"
+                        onPress={obj_this.stopNotification}
+                    />
+                </View>);
+            }
+            else{
+                return(
+                    <Text>No active notifications</Text>
+                );
+            }
+        }
         return (
             <View style={styles.container}>
-                <NewListingButton onPress={obj_this.sendNotification} />
+                {get_stop_btn()}
             </View>
         );
     }
