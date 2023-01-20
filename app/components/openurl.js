@@ -2,7 +2,7 @@ import React, {useCallback} from 'react';
 import {Alert, Linking} from 'react-native';
 import AppButton from './AppButton';
 
-function OpenURLButton ({ url, children }) {
+function OpenURLButton ({ url, txt }) {
     const handlePress = useCallback(async () => {
         // Checking if the link is supported for links with custom URL scheme.
         const supported = await Linking.canOpenURL(url);
@@ -15,8 +15,7 @@ function OpenURLButton ({ url, children }) {
             Alert.alert(`Don't know how to open this URL: ${url}`);
         }
     }, [url]);
-
-    return <AppButton title={children} onPress={handlePress} />;
+    return <AppButton title={txt} onPress={handlePress} />;
 };
 
 export default OpenURLButton;

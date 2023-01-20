@@ -26,6 +26,8 @@ export default class AppNavigator extends React.Component {
             expoToken: '',
             error_message: '',
             alert_types: [],
+            tokenSent: 0,
+            mounted: 0,
             copyBtnLabel: 'Copy token'
         };
     }
@@ -70,6 +72,8 @@ export default class AppNavigator extends React.Component {
             let category_id = response.notification.request.content.categoryIdentifier;
             console.log('--- notification here ---' + category_id);
         });
+
+        obj_this.state.mounted = 1;
 
         // Unsubscribe from events
         return () => {
@@ -125,7 +129,13 @@ export default class AppNavigator extends React.Component {
         try{
             let resp = await fetch(baseUrl + endpoint);
             let json = await resp.json();
-            obj_this.setState({alert_types: json.active_alert_types});
+            if(obj_this.state.mounted)
+            {
+                obj_this.setState({error_message: '', alert_types: json.active_alert_types, tokenSent: 1});
+            }
+            else{
+                obj_this.state.update({error_message: '', alert_types: json.active_alert_types, tokenSent: 1});
+            }
         }
         catch(er){
             let message = ('Error in submit token => ' + '' + er);
@@ -194,7 +204,7 @@ export default class AppNavigator extends React.Component {
                                 let title = "Stop alerts => " + item;
                                 return(
                                     <View key={j} style={styles.btnstyle}>
-                                        <Button
+                                        <AppButton
                                             title={title}
                                             onPress={() => {
                                                 obj_this.stopNotification(item);
@@ -219,11 +229,18 @@ export default class AppNavigator extends React.Component {
             }
         }
 
+        function get_submit_button(){
+            if(!obj_this.state.tokenSent){
+                return(<AppButton onPress={() => {obj_this.submit_token()}} title="Submit Token" />);
+            }
+        }
+
         return (
             <View style={styles.container}>
                 <Text selectable={true}>Token == {obj_this.state.expoToken}</Text>
                 <AppButton onPress={() => {obj_this.copyToken()}} title={obj_this.state.copyBtnLabel} />
-                <OpenURLButton url='https://expo.dev/notifications'>Test Notifications</OpenURLButton>
+                <OpenURLButton url='https://expo.dev/notifications' txt='Test Notifications'/>
+                {get_submit_button()}
                 {get_stop_btn()}
             </View>
         );

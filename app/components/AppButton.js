@@ -14,16 +14,16 @@ function AppButton({ title, onPress, color ="primary" }) {
 const styles = StyleSheet.create({
     button: {
         backgroundColor: colors.primary,
-        borderRadius: 25, // makes your button circled
+        borderRadius: 20, // makes your button circled
         justifyContent: 'center', // puts your content in the center
         alignItems: 'center',
-        padding: 15,
+        padding: 10,
         width: '100%',
         marginVertical: 10,
     },
     text: {
         color: colors.white,
-        fontSize: 18,
+        fontSize: 16,
         textTransform: 'uppercase',
         fontWeight: 'bold'
     }
