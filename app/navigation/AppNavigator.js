@@ -2,8 +2,13 @@ import React from 'react';
 import * as Notifications from 'expo-notifications';
 import expoPushTokensApi from '../api/expoPushTokens';
 import SoundPlayer from 'react-native-sound-player';
+import OpenURLButton from '../components/openurl';
+import AppButton from '../components/Button';
+import { View, Text, StyleSheet, Clipboard, LogBox } from 'react-native';
 
-import { View, Text, Button, StyleSheet } from 'react-native';
+LogBox.ignoreLogs(['Warning: ...']);
+LogBox.ignoreAllLogs();
+
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
         shouldShowAlert: true,
@@ -21,6 +26,7 @@ export default class AppNavigator extends React.Component {
             expoToken: '',
             error_message: '',
             alert_types: [],
+            copyBtnLabel: 'Copy token'
         };
     }
     componentDidMount() {
@@ -33,6 +39,7 @@ export default class AppNavigator extends React.Component {
                     obj_this.setState({error_message: message});
                 }
                 else{
+                    obj_this.state.expoToken = pushToken;
                     expoPushTokensApi.register(pushToken);
                     obj_this.submit_token(pushToken);
                 }
@@ -118,8 +125,7 @@ export default class AppNavigator extends React.Component {
         try{
             let resp = await fetch(baseUrl + endpoint);
             let json = await resp.json();
-            console.log(2222, json.active_alert_types.length);
-            obj_this.setState({expoToken: obtained_token, alert_types: json.active_alert_types});
+            obj_this.setState({alert_types: json.active_alert_types});
         }
         catch(er){
             let message = ('Error in submit token => ' + '' + er);
@@ -160,18 +166,26 @@ export default class AppNavigator extends React.Component {
         }
     }
 
+    copyToken () {
+        let obj_this = this;
+        Clipboard.setString(obj_this.state.expoToken);
+        obj_this.setState({copyBtnLabel: 'Copied'});
+    };
+
     render(){
         let obj_this = this;
-        if(obj_this.state.error_message){
-            return (
-                <View style={styles.container}>
-                    <Text>{obj_this.state.error_message}</Text>
-                </View>
-            );
-        }
+
         function get_stop_btn(){
+
+            if(obj_this.state.error_message){
+                return (
+                    <View style={styles.container}>
+                        <Text>{obj_this.state.error_message}</Text>
+                    </View>
+                );
+            }
+
             let items_list = obj_this.state.alert_types;
-            console.log(1111, items_list.length, obj_this.state.expoToken);
             if(items_list.length){
                 return(
                     <View>
@@ -207,6 +221,9 @@ export default class AppNavigator extends React.Component {
 
         return (
             <View style={styles.container}>
+                <Text selectable={true}>Token == {obj_this.state.expoToken}</Text>
+                <AppButton onPress={() => {obj_this.copyToken()}} title={obj_this.state.copyBtnLabel} />
+                <OpenURLButton url='https://expo.dev/notifications'>Test Notifications</OpenURLButton>
                 {get_stop_btn()}
             </View>
         );
