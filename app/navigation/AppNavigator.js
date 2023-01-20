@@ -9,6 +9,23 @@ import { View, Text, StyleSheet, Clipboard, LogBox } from 'react-native';
 LogBox.ignoreLogs(['Warning: ...']);
 LogBox.ignoreAllLogs();
 
+import BackgroundService from 'react-native-background-actions';
+
+// You can do anything in your task such as network requests, timers and so on,
+// as long as it doesn't touch UI. Once your task completes (i.e. the promise is resolved),
+// React Native will go into "paused" mode (unless there are other tasks running,
+// or there is a foreground app).
+const veryIntensiveTask = async (taskDataArguments) => {
+    // Example of an infinite loop task
+    console.log('Intensive task 0');
+    //const sleep = (time) => new Promise((resolve) => setTimeout(() => resolve(), time));
+    //const { delay } = taskDataArguments;
+
+};
+
+// iOS will also run everything here in the background until .stop() is called
+
+
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
         shouldShowAlert: true,
@@ -43,7 +60,7 @@ export default class AppNavigator extends React.Component {
                 else{
                     obj_this.state.expoToken = pushToken;
                     expoPushTokensApi.register(pushToken);
-                    obj_this.submit_token(pushToken);
+                    //obj_this.submit_token(pushToken);
                 }
             }).catch(er=>{
                 setState(() => {
@@ -120,6 +137,25 @@ export default class AppNavigator extends React.Component {
             let message = ('Error in stop => ' + er);
             this.setState({error_message: message});
         }
+    }
+
+    run_bg_process(){
+        console.log('Starting 1');
+        let task_options = {
+            taskName: 'Example',
+            taskTitle: 'ExampleTask title',
+            taskDesc: 'ExampleTask description',
+            color: '#ff00ff',
+            taskIcon: {
+                name: 'ic_launcher',
+                type: 'mipmap',
+            },
+            parameters: {
+                delay: 2000,
+            },
+        };
+        let waiter = BackgroundService.start(veryIntensiveTask, task_options);
+        return waiter;
     }
 
     async submit_token(obtained_token){
