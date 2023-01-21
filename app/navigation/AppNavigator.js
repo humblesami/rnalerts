@@ -99,7 +99,7 @@ export default class AppNavigator extends React.Component {
     }
 
     async sendNotification(){
-        let baseUrl = 'http://0.0.0.0:9000/api';
+        let baseUrl = 'https://dap.92newshd.tv/api';
         let endpoint = '/messages/send';
         try{
             let resp = await fetch(baseUrl + endpoint);
@@ -118,7 +118,7 @@ export default class AppNavigator extends React.Component {
             if(alert_index == -1){
                 return;
             }
-            let baseUrl = 'http://0.0.0.0:9000/api';
+            let baseUrl = 'https://dap.92newshd.tv/api';
             let endpoint = '/messages/stop?note_id='+ alert_id+'&device_token='+obj_this.state.expoToken;
             let resp = await fetch(baseUrl + endpoint);
             let json = await resp.json();
@@ -140,7 +140,7 @@ export default class AppNavigator extends React.Component {
             return;
         }
         let obj_this = this;
-        let baseUrl = 'http://0.0.0.0:9000/api';
+        let baseUrl = 'https://dap.92newshd.tv/api';
         let endpoint = '/messages/submit-token?obtained_token='+obtained_token;
         try{
             let resp = await fetch(baseUrl + endpoint);
