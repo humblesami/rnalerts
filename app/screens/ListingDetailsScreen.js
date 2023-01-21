@@ -6,23 +6,23 @@ import ListItem from "../components/lists/ListItem";
 import colors from '../config/colors'
 
 function ListingDetailsScreen({ route }) {
-  const listing = route.params;
+    const listing = route.params;
 
     return (
-      <View>
-        <Image style={styles.image} source={listing.image} />
-        <View style={styles.detailsContainer}>
-          <AppText style={styles.title}>{listing.title}</AppText>
-          <AppText style={styles.price}>${listing.price}</AppText>
-          <View style={styles.userContainer}>
-          <ListItem 
-            image={require("../assets/photo.jpeg")}
-            title="Fortune Ikechi"
-            subTitle="5 Listings"
-          />
-          </View>
+        <View>
+            <Image style={styles.image} source={listing.image} />
+            <View style={styles.detailsContainer}>
+                <AppText style={styles.title}>{listing.title}</AppText>
+                <AppText style={styles.price}>${listing.price}</AppText>
+                <View style={styles.userContainer}>
+                    <ListItem
+                        image={require("../assets/photo.jpeg")}
+                        title="Fortune Ikechi"
+                        subTitle="5 Listings"
+                    />
+                </View>
+            </View>
         </View>
-      </View>
     );
 }
 
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
         fontWeight: "500",
     },
     userContainer: {
-        marginVertical: 30, // was 40 
+        marginVertical: 30, // was 40
     },
 })
 
