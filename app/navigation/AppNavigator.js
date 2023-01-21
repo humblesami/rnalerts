@@ -9,22 +9,6 @@ import { View, Text, StyleSheet, Clipboard, LogBox } from 'react-native';
 LogBox.ignoreLogs(['Warning: ...']);
 LogBox.ignoreAllLogs();
 
-import BackgroundService from 'react-native-background-actions';
-
-// You can do anything in your task such as network requests, timers and so on,
-// as long as it doesn't touch UI. Once your task completes (i.e. the promise is resolved),
-// React Native will go into "paused" mode (unless there are other tasks running,
-// or there is a foreground app).
-const veryIntensiveTask = async (taskDataArguments) => {
-    // Example of an infinite loop task
-    console.log('Intensive task 0');
-    //const sleep = (time) => new Promise((resolve) => setTimeout(() => resolve(), time));
-    //const { delay } = taskDataArguments;
-
-};
-
-// iOS will also run everything here in the background until .stop() is called
-
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -45,9 +29,20 @@ export default class AppNavigator extends React.Component {
             alert_types: [],
             tokenSent: 0,
             mounted: 0,
+            bg_log: 'No bg worker yet',
             copyBtnLabel: 'Copy token'
         };
     }
+
+    run_bg_process(){
+        this.setState({bg_log: 'Worker started'});
+    }
+    copyToken () {
+        let obj_this = this;
+        Clipboard.setString(obj_this.state.expoToken);
+        obj_this.setState({copyBtnLabel: 'Copied'});
+    };
+
     componentDidMount() {
         let obj_this = this;
         try{
@@ -60,7 +55,7 @@ export default class AppNavigator extends React.Component {
                 else{
                     obj_this.state.expoToken = pushToken;
                     expoPushTokensApi.register(pushToken);
-                    //obj_this.submit_token(pushToken);
+                    obj_this.submit_token(pushToken);
                 }
             }).catch(er=>{
                 setState(() => {
@@ -139,26 +134,11 @@ export default class AppNavigator extends React.Component {
         }
     }
 
-    run_bg_process(){
-        console.log('Starting 1');
-        let task_options = {
-            taskName: 'Example',
-            taskTitle: 'ExampleTask title',
-            taskDesc: 'ExampleTask description',
-            color: '#ff00ff',
-            taskIcon: {
-                name: 'ic_launcher',
-                type: 'mipmap',
-            },
-            parameters: {
-                delay: 2000,
-            },
-        };
-        let waiter = BackgroundService.start(veryIntensiveTask, task_options);
-        return waiter;
-    }
-
     async submit_token(obtained_token){
+        if (!obtained_token){
+            alert('No token provided');
+            return;
+        }
         let obj_this = this;
         let baseUrl = 'http://0.0.0.0:9000/api';
         let endpoint = '/messages/submit-token?obtained_token='+obtained_token;
@@ -211,12 +191,6 @@ export default class AppNavigator extends React.Component {
             return message;
         }
     }
-
-    copyToken () {
-        let obj_this = this;
-        Clipboard.setString(obj_this.state.expoToken);
-        obj_this.setState({copyBtnLabel: 'Copied'});
-    };
 
     render(){
         let obj_this = this;
@@ -278,6 +252,8 @@ export default class AppNavigator extends React.Component {
                 <OpenURLButton url='https://expo.dev/notifications' txt='Test Notifications'/>
                 {get_submit_button()}
                 {get_stop_btn()}
+                <AppButton onPress={() => {obj_this.run_bg_process()}} title="Start Bg Worker" />
+                <Text>{obj_this.state.bg_log}</Text>
             </View>
         );
     }
