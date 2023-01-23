@@ -247,7 +247,7 @@ export default class AppNavigator extends React.Component {
 
         return (
             <View style={styles.container}>
-                <Text selectable={true}>Token == {obj_this.state.expoToken}</Text>
+                <Text selectable={true}>Token == {obj_this.state.expoToken || 'Obtaining token'}</Text>
                 <AppButton onPress={() => {obj_this.copyToken()}} title={obj_this.state.copyBtnLabel} />
                 <OpenURLButton url='https://expo.dev/notifications' txt='Test Notifications'/>
                 {get_submit_button()}
