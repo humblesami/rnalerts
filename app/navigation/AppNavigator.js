@@ -21,6 +21,7 @@ Notifications.setNotificationHandler({
 export default class AppNavigator extends React.Component {
     notificationListener = {}
     responseListener = {};
+    baseUrl = 'https://dap.92newshd.tv/api';
     constructor(){
         super();
         this.state = {
@@ -32,6 +33,7 @@ export default class AppNavigator extends React.Component {
             bg_log: 'No bg worker yet',
             copyBtnLabel: 'Copy token'
         };
+        //this.baseUrl = 'http://127.0.0.1:8000'
     }
 
     run_bg_process(){
@@ -99,10 +101,10 @@ export default class AppNavigator extends React.Component {
     }
 
     async sendNotification(){
-        let baseUrl = 'https://dap.92newshd.tv/api';
+
         let endpoint = '/messages/send';
         try{
-            let resp = await fetch(baseUrl + endpoint);
+            let resp = await fetch(this.baseUrl + endpoint);
             let json = await resp.json();
             console.log('Response', json);
         }
@@ -118,9 +120,8 @@ export default class AppNavigator extends React.Component {
             if(alert_index == -1){
                 return;
             }
-            let baseUrl = 'https://dap.92newshd.tv/api';
-            let endpoint = '/messages/stop?note_id='+ alert_id+'&device_token='+obj_this.state.expoToken;
-            let resp = await fetch(baseUrl + endpoint);
+            let endpoint = '/expo/stop?note_id='+ alert_id+'&device_token='+obj_this.state.expoToken;
+            let resp = await fetch(this.baseUrl + endpoint);
             let json = await resp.json();
             if(json.status == 'success'){
 
@@ -140,23 +141,27 @@ export default class AppNavigator extends React.Component {
             return;
         }
         let obj_this = this;
-        let baseUrl = 'https://dap.92newshd.tv/api';
-        let endpoint = '/messages/submit-token?obtained_token='+obtained_token;
-        try{
-            let resp = await fetch(baseUrl + endpoint);
-            let json = await resp.json();
+        let data = {obtained_token: obtained_token};
+        let endpoint = '/expo/submit/'+obj_this.state.expoToken;
+        fetch(this.baseUrl + endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        }).then((response) => response.json()).then((json_data) => {
             if(obj_this.state.mounted)
             {
-                obj_this.setState({error_message: '', alert_types: json.active_alert_types, tokenSent: 1});
+                obj_this.setState({error_message: '', alert_types: json_data.active_alerts, tokenSent: 1});
             }
             else{
-                obj_this.state.update({error_message: '', alert_types: json.active_alert_types, tokenSent: 1});
+                obj_this.state.update({error_message: '', alert_types: json_data.active_alerts, tokenSent: 1});
             }
-        }
-        catch(er){
+        })
+        .catch((er) => {
             let message = ('Error in submit token => ' + '' + er);
             this.setState({error_message: message});
-        }
+        });
     }
 
     async registerForPushNotificationsAsync() {
