@@ -46,12 +46,12 @@ export default class AppNavigator extends React.Component {
         this.state = {
             expoToken: '',
             error_message: '',
-            alert_types: [],
             tokenSent: 0,
+            active_alerts: [],
+            passive_alerts: [],
             bg_log: 'No bg worker yet',
-            copyBtnLabel: 'Copy token'
+            copyBtnLabel: 'Copy token',
         };
-        //this.baseUrl = 'http://127.0.0.1:8000'
     }
 
     run_bg_process() {
@@ -144,24 +144,24 @@ export default class AppNavigator extends React.Component {
         }
     }
 
-    async stopNotification(alert_id) {
+    async toggleNotification(alert_id) {
         let obj_this = this;
         try {
-            let alert_index = obj_this.state.alert_types.indexOf(alert_id);
+            let alert_index = obj_this.state.active_alerts.indexOf(alert_id);
             if (alert_index == -1) {
                 return;
             }
-            let endpoint = '/expo/stop?note_id=' + alert_id + '&device_token=' + obj_this.state.expoToken;
+            let endpoint = '/expo/toggle/' + alert_id + '/' + obj_this.state.expoToken;
             let resp = await fetch(this.baseUrl + endpoint);
             let json = await resp.json();
             if (json.status == 'success') {
 
-                obj_this.state.alert_types.splice(alert_index, 1);
-                obj_this.setState({ alert_types: obj_this.state.alert_types });
+                obj_this.state.active_alerts.splice(alert_index, 1);
+                obj_this.setState({ active_alerts: obj_this.state.active_alerts });
             }
         }
         catch (er) {
-            let message = ('Error in stop => ' + er);
+            let message = ('Error in toggle => ' + er);
             obj_this.on_error(er, message);
         }
     }
@@ -169,10 +169,6 @@ export default class AppNavigator extends React.Component {
     async submit_token(obtained_token) {
         console.log('Submitting Token');
         let my_token = await rnStorage.get('token');
-        if(my_token){
-            console.log('Already submitted');
-            return;
-        }
         if (!obtained_token) {
             alert('No token provided');
             return;
@@ -180,6 +176,9 @@ export default class AppNavigator extends React.Component {
         let obj_this = this;
         let data = { obtained_token: obtained_token };
         let endpoint = '/expo/submit/' + obj_this.state.expoToken;
+        if (my_token){
+            endpoint = '/expo/active_alerts/' + obj_this.state.expoToken;
+        }
         endpoint = this.baseUrl + endpoint;
         let postOptions = {
             method: 'POST',
@@ -188,9 +187,18 @@ export default class AppNavigator extends React.Component {
             },
             body: JSON.stringify(data),
         };
-        fetch(endpoint).then((response) => response.json()).then((json_data) => {
+        fetch(endpoint).then((response) => {
+            if(!response.ok){
+                console.log(endpoint);
+                return {status: 'error', message: 'Invalid response => '+response.status+ ' from '+endpoint};
+            }
+            else{
+                return response.json();
+            }
+        }).then((json_data) => {
             if(json_data.status == 'success'){
                 rnStorage.save('token', obtained_token).then(()=>{});
+                obj_this.setState({ active_alerts: json_data.channels.active, passive_alerts: json_data.channels.requested })
                 console.log('Now Submitted');
             }
             else{
@@ -248,14 +256,24 @@ export default class AppNavigator extends React.Component {
                     </View>
                 );
             }
+        }
 
-            let items_list = obj_this.state.alert_types;
-            if (items_list.length) {
-                return (
+        function get_submit_button() {
+            if (!obj_this.state.tokenSent) {
+                return (<AppButton onPress={() => { obj_this.submit_token() }} title="Submit Token" />);
+            }
+        }
+
+        function render_alerts(items_list, name){
+            return (
+                <View>
+                    <View>
+                        <Text>{name}</Text>
+                    </View>
                     <View>
                         {
                             items_list.map(function (item, j) {
-                                let title = "Stop alerts => " + item;
+                                let title = "Toggle => " + item;
                                 return (
                                     <View key={j} style={styles.btnstyle}>
                                         <AppButton
@@ -269,24 +287,8 @@ export default class AppNavigator extends React.Component {
                             })
                         }
                     </View>
-                );
-            }
-            else {
-                if (obj_this.state.expoToken) {
-                    return (
-                        <Text>No active notifications</Text>
-                    );
-                }
-                else {
-                    <Text>Registering Token at server...</Text>
-                }
-            }
-        }
-
-        function get_submit_button() {
-            if (!obj_this.state.tokenSent) {
-                return (<AppButton onPress={() => { obj_this.submit_token() }} title="Submit Token" />);
-            }
+                </View>
+            );
         }
 
         // <AppButton onPress={() => { obj_this.run_bg_process() }} title="Start Bg Worker" />
@@ -299,6 +301,7 @@ export default class AppNavigator extends React.Component {
                 <OpenURLButton url='https://expo.dev/notifications' txt='Test Notifications' />
                 {get_submit_button()}
                 {get_stop_btn()}
+                {render_alerts(obj_this.state.active_alerts, 'Active Alerts')}
             </View>
         );
     }
@@ -310,4 +313,3 @@ const styles = StyleSheet.create({
         padding: 10
     }
 });
-
