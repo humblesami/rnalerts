@@ -1,6 +1,5 @@
 import React from 'react';
 import * as Notifications from 'expo-notifications';
-import expoPushTokensApi from '../api/expoPushTokens';
 import SoundPlayer from 'react-native-sound-player';
 import OpenURLButton from '../components/openurl';
 import AppButton from '../components/Button';
@@ -40,6 +39,7 @@ let rnStorage = {
 export default class AppNavigator extends React.Component {
     notificationListener = {}
     responseListener = {};
+    mounted = 0;
     baseUrl = 'https://dap.92newshd.tv';
     constructor() {
         super();
@@ -48,7 +48,6 @@ export default class AppNavigator extends React.Component {
             error_message: '',
             alert_types: [],
             tokenSent: 0,
-            mounted: 0,
             bg_log: 'No bg worker yet',
             copyBtnLabel: 'Copy token'
         };
@@ -56,7 +55,6 @@ export default class AppNavigator extends React.Component {
     }
 
     run_bg_process() {
-        this.setState({ bg_log: 'Worker started' });
     }
     copyToken() {
         let obj_this = this;
@@ -64,41 +62,27 @@ export default class AppNavigator extends React.Component {
         obj_this.setState({ copyBtnLabel: 'Copied' });
     };
 
+    st_upd = 0;
+
+    setState(values){
+        let obj_this = this;
+        if(!this.mounted){
+            for(let key in values){
+                this.state[key] = values[key];
+            }
+            console.log(obj_this.st_upd, values);
+            return;
+        }
+        obj_this.st_upd += 1;
+        super.setState(values);
+    }
+
+    on_error(er, prefix){
+        this.setState({ error_message: prefix });
+    }
+
     componentDidMount() {
         let obj_this = this;
-        try {
-            console.log("Mount");
-            this.registerForPushNotificationsAsync().then(pushToken => {
-                console.log(pushToken);
-                if (!pushToken) {
-                    let message = 'Invalid Token';
-                    obj_this.setState({ error_message: message });
-                }
-                else {
-                    expoPushTokensApi.register(pushToken);
-                    if (obj_this.state.mounted)
-                    {
-                        obj_this.setState({expoToken: pushToken});
-                    }
-                    else{
-                        obj_this.state.update({expoToken: pushToken});
-                    }
-                    obj_this.submit_token(pushToken);
-                }
-            }).catch(er => {
-                setState(() => {
-                    let message = ('Could not registerPushNotificationsAsync-1');
-                    obj_this.setState({ error_message: message });
-                });
-            });
-        }
-        catch (err) {
-            setState(() => {
-                let message = ('Could not registerPushNotificationsAsync-2');
-                obj_this.setState({ error_message: message });
-            });
-        }
-
 
         // This listener is fired whenever a notification is received while the app is foregrounded
         obj_this.notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
@@ -113,7 +97,28 @@ export default class AppNavigator extends React.Component {
             console.log('--- notification here ---' + category_id);
         });
 
-        obj_this.state.mounted = 1;
+        obj_this.mounted = 1;
+
+        try {
+            console.log("Mount");
+            this.registerForPushNotificationsAsync().then(pushToken => {
+                if (!pushToken) {
+                    let message = 'Invalid Token';
+                    obj_this.on_error(0, message);
+                }
+                else {
+                    obj_this.setState({expoToken: pushToken});
+                    obj_this.submit_token(pushToken);
+                }
+            }).catch(er => {
+                let message = ('Could not registerPushNotificationsAsync-1');
+                obj_this.on_error(er, message);
+            });
+        }
+        catch (err) {
+            let message = ('Could not registerPushNotificationsAsync-2');
+            obj_this.on_error(er, message);
+        }
 
         // Unsubscribe from events
         return () => {
@@ -157,7 +162,7 @@ export default class AppNavigator extends React.Component {
         }
         catch (er) {
             let message = ('Error in stop => ' + er);
-            this.setState({ error_message: message });
+            obj_this.on_error(er, message);
         }
     }
 
@@ -183,20 +188,18 @@ export default class AppNavigator extends React.Component {
             },
             body: JSON.stringify(data),
         };
-
         fetch(endpoint).then((response) => response.json()).then((json_data) => {
-            if (obj_this.state.mounted) {
-                obj_this.setState({ error_message: '', alert_types: json_data.active_alerts, tokenSent: 1 });
+            if(json_data.status == 'success'){
+                rnStorage.save('token', obtained_token).then(()=>{});
+                console.log('Now Submitted');
             }
-            else {
-                obj_this.state.update({ error_message: '', alert_types: json_data.active_alerts, tokenSent: 1 });
+            else{
+                obj_this.on_error(0, json_data.message);
             }
-            rnStorage.save('token', obtained_token).then(()=>{});
-            console.log('Now Submitted');
         }).catch((er) => {
             console.log('\n'+endpoint+'\n')
             let message = ('Error in submit token => ' + '' + er);
-            this.setState({ error_message: message });
+            obj_this.on_error(er, message);
         });
     }
 
@@ -228,7 +231,7 @@ export default class AppNavigator extends React.Component {
         }
         catch (er) {
             let message = ('Device not connected or could not get token =>' + '' + er);
-            this.setState({ error_message: message });
+            obj_this.on_error(er, message);
             return message;
         }
     }
