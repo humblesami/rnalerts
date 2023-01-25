@@ -286,6 +286,9 @@ export default class AppNavigator extends React.Component {
             }
         }
 
+        // <AppButton onPress={() => { obj_this.run_bg_process() }} title="Start Bg Worker" />
+        // <Text>{obj_this.state.bg_log}</Text>
+
         return (
             <View style={styles.container}>
                 <Text selectable={true}>Token == {obj_this.state.expoToken || 'Obtaining token'}</Text>
@@ -293,8 +296,6 @@ export default class AppNavigator extends React.Component {
                 <OpenURLButton url='https://expo.dev/notifications' txt='Test Notifications' />
                 {get_submit_button()}
                 {get_stop_btn()}
-                <AppButton onPress={() => { obj_this.run_bg_process() }} title="Start Bg Worker" />
-                <Text>{obj_this.state.bg_log}</Text>
             </View>
         );
     }
