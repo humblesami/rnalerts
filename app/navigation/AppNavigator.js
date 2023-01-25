@@ -4,7 +4,7 @@ import expoPushTokensApi from '../api/expoPushTokens';
 import SoundPlayer from 'react-native-sound-player';
 import OpenURLButton from '../components/openurl';
 import AppButton from '../components/Button';
-import { View, Text, StyleSheet, Clipboard, LogBox } from 'react-native';
+import { View, AsyncStorage, Text, StyleSheet, Clipboard, LogBox } from 'react-native';
 
 LogBox.ignoreLogs(['Warning: ...']);
 LogBox.ignoreAllLogs();
@@ -18,11 +18,30 @@ Notifications.setNotificationHandler({
 });
 
 
+let rnStorage = {
+    save: async (key, value) => {
+        try {
+            await AsyncStorage.setItem(key, value);
+        } catch (error) {
+            // Error saving data
+        }
+    },
+    get: async (key) => {
+        try {
+            const value = await AsyncStorage.getItem(key);
+            return value;
+        } catch (error) {
+            // Error retrieving data
+        }
+    }
+}
+
+
 export default class AppNavigator extends React.Component {
     notificationListener = {}
     responseListener = {};
-    baseUrl = 'https://dap.92newshd.tv/api';
-    constructor(){
+    baseUrl = 'https://dap.92newshd.tv';
+    constructor() {
         super();
         this.state = {
             expoToken: '',
@@ -36,40 +55,47 @@ export default class AppNavigator extends React.Component {
         //this.baseUrl = 'http://127.0.0.1:8000'
     }
 
-    run_bg_process(){
-        this.setState({bg_log: 'Worker started'});
+    run_bg_process() {
+        this.setState({ bg_log: 'Worker started' });
     }
-    copyToken () {
+    copyToken() {
         let obj_this = this;
         Clipboard.setString(obj_this.state.expoToken);
-        obj_this.setState({copyBtnLabel: 'Copied'});
+        obj_this.setState({ copyBtnLabel: 'Copied' });
     };
 
     componentDidMount() {
         let obj_this = this;
-        try{
+        try {
+            console.log("Mount");
             this.registerForPushNotificationsAsync().then(pushToken => {
                 console.log(pushToken);
-                if(!pushToken){
+                if (!pushToken) {
                     let message = 'Invalid Token';
-                    obj_this.setState({error_message: message});
+                    obj_this.setState({ error_message: message });
                 }
-                else{
-                    obj_this.state.expoToken = pushToken;
+                else {
                     expoPushTokensApi.register(pushToken);
+                    if (obj_this.state.mounted)
+                    {
+                        obj_this.setState({expoToken: pushToken});
+                    }
+                    else{
+                        obj_this.state.update({expoToken: pushToken});
+                    }
                     obj_this.submit_token(pushToken);
                 }
-            }).catch(er=>{
+            }).catch(er => {
                 setState(() => {
                     let message = ('Could not registerPushNotificationsAsync-1');
-                    obj_this.setState({error_message: message});
+                    obj_this.setState({ error_message: message });
                 });
             });
         }
-        catch(err){
+        catch (err) {
             setState(() => {
                 let message = ('Could not registerPushNotificationsAsync-2');
-                obj_this.setState({error_message: message});
+                obj_this.setState({ error_message: message });
             });
         }
 
@@ -100,72 +126,82 @@ export default class AppNavigator extends React.Component {
         SoundPlayer.playSoundFile('beep', 'mp3');
     }
 
-    async sendNotification(){
+    async sendNotification() {
 
         let endpoint = '/messages/send';
-        try{
+        try {
             let resp = await fetch(this.baseUrl + endpoint);
             let json = await resp.json();
             console.log('Response', json);
         }
-        catch(er){
-            console.log('Error in send get =>' , er);
+        catch (er) {
+            console.log('Error in send get =>', er);
         }
     }
 
-    async stopNotification(alert_id){
+    async stopNotification(alert_id) {
         let obj_this = this;
-        try{
+        try {
             let alert_index = obj_this.state.alert_types.indexOf(alert_id);
-            if(alert_index == -1){
+            if (alert_index == -1) {
                 return;
             }
-            let endpoint = '/expo/stop?note_id='+ alert_id+'&device_token='+obj_this.state.expoToken;
+            let endpoint = '/expo/stop?note_id=' + alert_id + '&device_token=' + obj_this.state.expoToken;
             let resp = await fetch(this.baseUrl + endpoint);
             let json = await resp.json();
-            if(json.status == 'success'){
+            if (json.status == 'success') {
 
                 obj_this.state.alert_types.splice(alert_index, 1);
-                obj_this.setState({alert_types: obj_this.state.alert_types});
+                obj_this.setState({ alert_types: obj_this.state.alert_types });
             }
         }
-        catch(er){
+        catch (er) {
             let message = ('Error in stop => ' + er);
-            this.setState({error_message: message});
+            this.setState({ error_message: message });
         }
     }
 
-    async submit_token(obtained_token){
-        if (!obtained_token){
+    async submit_token(obtained_token) {
+        console.log('Submitting Token');
+        let my_token = await rnStorage.get('token');
+        if(my_token){
+            console.log('Already submitted');
+            return;
+        }
+        if (!obtained_token) {
             alert('No token provided');
             return;
         }
         let obj_this = this;
-        let data = {obtained_token: obtained_token};
-        let endpoint = '/expo/submit/'+obj_this.state.expoToken;
-        fetch(this.baseUrl + endpoint, {
+        let data = { obtained_token: obtained_token };
+        let endpoint = '/expo/submit/' + obj_this.state.expoToken;
+        endpoint = this.baseUrl + endpoint;
+        let postOptions = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(data),
-        }).then((response) => response.json()).then((json_data) => {
-            if(obj_this.state.mounted)
-            {
-                obj_this.setState({error_message: '', alert_types: json_data.active_alerts, tokenSent: 1});
+        };
+
+        fetch(endpoint).then((response) => response.json()).then((json_data) => {
+            if (obj_this.state.mounted) {
+                obj_this.setState({ error_message: '', alert_types: json_data.active_alerts, tokenSent: 1 });
             }
-            else{
-                obj_this.state.update({error_message: '', alert_types: json_data.active_alerts, tokenSent: 1});
+            else {
+                obj_this.state.update({ error_message: '', alert_types: json_data.active_alerts, tokenSent: 1 });
             }
-        })
-        .catch((er) => {
+            rnStorage.save('token', obtained_token).then(()=>{});
+            console.log('Now Submitted');
+        }).catch((er) => {
+            console.log('\n'+endpoint+'\n')
             let message = ('Error in submit token => ' + '' + er);
-            this.setState({error_message: message});
+            this.setState({ error_message: message });
         });
     }
 
     async registerForPushNotificationsAsync() {
-        try{
+        try {
             if (Platform.OS === 'android') {
                 await Notifications.setNotificationChannelAsync('down_alerts', {
                     name: 'down_alerts',
@@ -190,19 +226,19 @@ export default class AppNavigator extends React.Component {
             let token = res.data;
             return token;
         }
-        catch(er){
+        catch (er) {
             let message = ('Device not connected or could not get token =>' + '' + er);
-            this.setState({error_message: message});
+            this.setState({ error_message: message });
             return message;
         }
     }
 
-    render(){
+    render() {
         let obj_this = this;
 
-        function get_stop_btn(){
+        function get_stop_btn() {
 
-            if(obj_this.state.error_message){
+            if (obj_this.state.error_message) {
                 return (
                     <View style={styles.container}>
                         <Text>{obj_this.state.error_message}</Text>
@@ -211,13 +247,13 @@ export default class AppNavigator extends React.Component {
             }
 
             let items_list = obj_this.state.alert_types;
-            if(items_list.length){
-                return(
+            if (items_list.length) {
+                return (
                     <View>
                         {
-                            items_list.map(function(item, j) {
+                            items_list.map(function (item, j) {
                                 let title = "Stop alerts => " + item;
-                                return(
+                                return (
                                     <View key={j} style={styles.btnstyle}>
                                         <AppButton
                                             title={title}
@@ -232,39 +268,39 @@ export default class AppNavigator extends React.Component {
                     </View>
                 );
             }
-            else{
-                if(obj_this.state.expoToken){
-                    return(
+            else {
+                if (obj_this.state.expoToken) {
+                    return (
                         <Text>No active notifications</Text>
                     );
                 }
-                else{
+                else {
                     <Text>Registering Token at server...</Text>
                 }
             }
         }
 
-        function get_submit_button(){
-            if(!obj_this.state.tokenSent){
-                return(<AppButton onPress={() => {obj_this.submit_token()}} title="Submit Token" />);
+        function get_submit_button() {
+            if (!obj_this.state.tokenSent) {
+                return (<AppButton onPress={() => { obj_this.submit_token() }} title="Submit Token" />);
             }
         }
 
         return (
             <View style={styles.container}>
                 <Text selectable={true}>Token == {obj_this.state.expoToken || 'Obtaining token'}</Text>
-                <AppButton onPress={() => {obj_this.copyToken()}} title={obj_this.state.copyBtnLabel} />
-                <OpenURLButton url='https://expo.dev/notifications' txt='Test Notifications'/>
+                <AppButton onPress={() => { obj_this.copyToken() }} title={obj_this.state.copyBtnLabel} />
+                <OpenURLButton url='https://expo.dev/notifications' txt='Test Notifications' />
                 {get_submit_button()}
                 {get_stop_btn()}
-                <AppButton onPress={() => {obj_this.run_bg_process()}} title="Start Bg Worker" />
+                <AppButton onPress={() => { obj_this.run_bg_process() }} title="Start Bg Worker" />
                 <Text>{obj_this.state.bg_log}</Text>
             </View>
         );
     }
 }
 
-const styles =  StyleSheet.create({
+const styles = StyleSheet.create({
     container: {
         marginTop: 30,
         padding: 10
