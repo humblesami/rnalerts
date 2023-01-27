@@ -163,7 +163,7 @@ export default class AppNavigator extends React.Component {
     }
 
     async submit_token(obtained_token) {
-        console.log('Submitting Token');
+        console.log('Submitting Token => '+obtained_token);
         let my_token = await rnStorage.get('token');
         if (!obtained_token) {
             alert('No token provided');
