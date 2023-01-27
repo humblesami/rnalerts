@@ -47,8 +47,7 @@ export default class AppNavigator extends React.Component {
             expoToken: '',
             error_message: '',
             tokenSent: 0,
-            active_alerts: [],
-            passive_alerts: [],
+            subscriptions: [],
             bg_log: 'No bg worker yet',
             copyBtnLabel: 'Copy token',
         };
@@ -86,7 +85,7 @@ export default class AppNavigator extends React.Component {
 
         // This listener is fired whenever a notification is received while the app is foregrounded
         obj_this.notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-            console.log('--- notification received ---');
+            console.log(notification);
             //obj_this.playSound();
         });
 
@@ -147,17 +146,14 @@ export default class AppNavigator extends React.Component {
     async toggleNotification(alert_id) {
         let obj_this = this;
         try {
-            let alert_index = obj_this.state.active_alerts.indexOf(alert_id);
-            if (alert_index == -1) {
-                return;
-            }
+            let item = obj_this.state.subscriptions.find((x)=>x.channel__name==alert_id);
+            item.active = !item.active;
             let endpoint = '/expo/toggle/' + alert_id + '/' + obj_this.state.expoToken;
             let resp = await fetch(this.baseUrl + endpoint);
             let json = await resp.json();
             if (json.status == 'success') {
 
-                obj_this.state.active_alerts.splice(alert_index, 1);
-                obj_this.setState({ active_alerts: obj_this.state.active_alerts });
+                obj_this.setState({subscriptions:obj_this.state.subscriptions});
             }
         }
         catch (er) {
@@ -177,7 +173,7 @@ export default class AppNavigator extends React.Component {
         let data = { obtained_token: obtained_token };
         let endpoint = '/expo/submit/' + obj_this.state.expoToken;
         if (my_token){
-            endpoint = '/expo/active_alerts/' + obj_this.state.expoToken;
+            endpoint = '/expo/channels/' + obj_this.state.expoToken;
         }
         endpoint = this.baseUrl + endpoint;
         let postOptions = {
@@ -198,7 +194,8 @@ export default class AppNavigator extends React.Component {
         }).then((json_data) => {
             if(json_data.status == 'success'){
                 rnStorage.save('token', obtained_token).then(()=>{});
-                obj_this.setState({ active_alerts: json_data.channels.active, passive_alerts: json_data.channels.requested })
+                console.log('json_data.channels', json_data.channels);
+                obj_this.setState({ subscriptions: json_data.channels})
                 console.log('Now Submitted');
             }
             else{
@@ -215,7 +212,7 @@ export default class AppNavigator extends React.Component {
         try {
             if (Platform.OS === 'android') {
                 await Notifications.setNotificationChannelAsync('down_alerts', {
-                    name: 'down_alerts',
+                    name: 'main',
                     importance: Notifications.AndroidImportance.MAX,
                     vibrationPattern: [0, 250, 250, 250],
                     lightColor: '#FF231F7C',
@@ -264,6 +261,7 @@ export default class AppNavigator extends React.Component {
             }
         }
 
+
         function render_alerts(items_list, name){
             return (
                 <View>
@@ -273,13 +271,16 @@ export default class AppNavigator extends React.Component {
                     <View>
                         {
                             items_list.map(function (item, j) {
-                                let title = "Toggle => " + item;
+                                let title = "Subscribe => " + item.channel__name + ' Status';
+                                if(item.active){
+                                    title = "Unsubscribe => " + item.channel__name +' Status';
+                                }
                                 return (
                                     <View key={j} style={styles.btnstyle}>
                                         <AppButton
                                             title={title}
                                             onPress={() => {
-                                                obj_this.stopNotification(item);
+                                                obj_this.toggleNotification(item.channel__name);
                                             }}
                                         />
                                     </View>
@@ -298,10 +299,7 @@ export default class AppNavigator extends React.Component {
             <View style={styles.container}>
                 <Text selectable={true}>Token == {obj_this.state.expoToken || 'Obtaining token'}</Text>
                 <AppButton onPress={() => { obj_this.copyToken() }} title={obj_this.state.copyBtnLabel} />
-                <OpenURLButton url='https://expo.dev/notifications' txt='Test Notifications' />
-                {get_submit_button()}
-                {get_stop_btn()}
-                {render_alerts(obj_this.state.active_alerts, 'Active Alerts')}
+                {render_alerts(obj_this.state.subscriptions, 'My Alerts')}
             </View>
         );
     }
