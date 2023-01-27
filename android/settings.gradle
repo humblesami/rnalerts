@@ -1,4 +1,4 @@
-rootProject.name = 'Server Alerts 92news'
+rootProject.name = '92 Alerts2'
 
 apply from: new File(["node", "--print", "require.resolve('expo/package.json')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle");
 useExpoModules()
