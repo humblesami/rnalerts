@@ -1,7 +1,7 @@
 {
     "expo": {
-        "name": "DoneWithIt",
-        "slug": "DoneWithIt",
+        "name": "Server Alerts 92news",
+        "slug": "serveralerts92",
         "platforms": [
             "ios",
             "android",
