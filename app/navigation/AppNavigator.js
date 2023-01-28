@@ -2,6 +2,7 @@ import React from 'react';
 import * as Notifications from 'expo-notifications';
 import SoundPlayer from 'react-native-sound-player';
 import OpenURLButton from '../components/openurl';
+import * as Device from 'expo-device';
 import AppButton from '../components/Button';
 import { View, AsyncStorage, Text, StyleSheet, Clipboard, LogBox } from 'react-native';
 
@@ -63,10 +64,10 @@ export default class AppNavigator extends React.Component {
 
     st_upd = 0;
 
-    setState(values){
+    setState(values) {
         let obj_this = this;
-        if(!this.mounted){
-            for(let key in values){
+        if (!this.mounted) {
+            for (let key in values) {
                 this.state[key] = values[key];
             }
             console.log(obj_this.st_upd, values);
@@ -76,7 +77,7 @@ export default class AppNavigator extends React.Component {
         super.setState(values);
     }
 
-    on_error(er, prefix){
+    on_error(er, prefix) {
         this.setState({ error_message: prefix });
     }
 
@@ -85,7 +86,7 @@ export default class AppNavigator extends React.Component {
 
         // This listener is fired whenever a notification is received while the app is foregrounded
         obj_this.notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-            console.log(notification);
+            console.log(notification.body);
             //obj_this.playSound();
         });
 
@@ -99,14 +100,13 @@ export default class AppNavigator extends React.Component {
         obj_this.mounted = 1;
 
         try {
-            console.log("Mount");
             this.registerForPushNotificationsAsync().then(pushToken => {
                 if (!pushToken) {
                     let message = 'Invalid Token';
                     obj_this.on_error(0, message);
                 }
                 else {
-                    obj_this.setState({expoToken: pushToken});
+                    obj_this.setState({ expoToken: pushToken });
                     obj_this.submit_token(pushToken);
                 }
             }).catch(er => {
@@ -146,14 +146,14 @@ export default class AppNavigator extends React.Component {
     async toggleNotification(alert_id) {
         let obj_this = this;
         try {
-            let item = obj_this.state.subscriptions.find((x)=>x.channel__name==alert_id);
+            let item = obj_this.state.subscriptions.find((x) => x.channel__name == alert_id);
             item.active = !item.active;
             let endpoint = '/expo/toggle/' + alert_id + '/' + obj_this.state.expoToken;
             let resp = await fetch(this.baseUrl + endpoint);
             let json = await resp.json();
             if (json.status == 'success') {
 
-                obj_this.setState({subscriptions:obj_this.state.subscriptions});
+                obj_this.setState({ subscriptions: obj_this.state.subscriptions });
             }
         }
         catch (er) {
@@ -163,7 +163,7 @@ export default class AppNavigator extends React.Component {
     }
 
     async submit_token(obtained_token) {
-        console.log('Submitting Token => '+obtained_token);
+        console.log('\nSubmitting Token => ' + obtained_token);
         let my_token = await rnStorage.get('token');
         if (!obtained_token) {
             alert('No token provided');
@@ -172,7 +172,7 @@ export default class AppNavigator extends React.Component {
         let obj_this = this;
         let data = { obtained_token: obtained_token };
         let endpoint = '/expo/submit/' + obj_this.state.expoToken;
-        if (my_token){
+        if (my_token) {
             endpoint = '/expo/channels/' + obj_this.state.expoToken;
         }
         endpoint = this.baseUrl + endpoint;
@@ -184,44 +184,38 @@ export default class AppNavigator extends React.Component {
             body: JSON.stringify(data),
         };
         fetch(endpoint).then((response) => {
-            if(!response.ok){
+            if (!response.ok) {
                 console.log(endpoint);
-                return {status: 'error', message: 'Invalid response => '+response.status+ ' from '+endpoint};
+                return { status: 'error', message: 'Invalid response => ' + response.status + ' from ' + endpoint };
             }
-            else{
+            else {
                 return response.json();
             }
         }).then((json_data) => {
-            if(json_data.status == 'success'){
-                rnStorage.save('token', obtained_token).then(()=>{});
-                console.log('json_data.channels', json_data.channels);
-                obj_this.setState({ subscriptions: json_data.channels})
-                console.log('Now Submitted');
+            if (json_data.status == 'success') {
+                rnStorage.save('token', obtained_token).then(() => { });
+                if(!json_data.channels.length){
+                    obj_this.on_error(er, 'No active channels found');
+                }
+                else{
+                    obj_this.setState({ subscriptions: json_data.channels });
+                }
             }
-            else{
+            else {
                 obj_this.on_error(0, json_data.message);
             }
         }).catch((er) => {
-            console.log('\n'+endpoint+'\n')
+            console.log('\n' + endpoint + '\n')
             let message = ('Error in submit token => ' + '' + er);
             obj_this.on_error(er, message);
         });
     }
 
     async registerForPushNotificationsAsync() {
-        try {
-            if (Platform.OS === 'android') {
-                await Notifications.setNotificationChannelAsync('down_alerts', {
-                    name: 'main',
-                    importance: Notifications.AndroidImportance.MAX,
-                    vibrationPattern: [0, 250, 250, 250],
-                    lightColor: '#FF231F7C',
-                });
-            }
+        let token;
+        if (Device.isDevice) {
             const { status: existingStatus } = await Notifications.getPermissionsAsync();
             let finalStatus = existingStatus;
-
-
             if (existingStatus !== 'granted') {
                 const { status } = await Notifications.requestPermissionsAsync();
                 finalStatus = status;
@@ -230,16 +224,30 @@ export default class AppNavigator extends React.Component {
                 alert('Failed to get push token for push notification!');
                 return;
             }
-            let res = await Notifications.getExpoPushTokenAsync();
-            let token = res.data;
-            return token;
+            token = (await Notifications.getExpoPushTokenAsync()).data;
+        } else {
+            alert('Must use physical device for Push Notifications');
         }
-        catch (er) {
-            let message = ('Device not connected or could not get token =>' + '' + er);
-            obj_this.on_error(er, message);
-            return message;
+
+        if (Platform.OS === 'android') {
+            Notifications.setNotificationChannelAsync('down_alerts', {
+                name: 'main',
+                importance: Notifications.AndroidImportance.MAX,
+                vibrationPattern: [0, 250, 250, 250],
+                lightColor: '#FF231F7C',
+            });
         }
+        if(!token){
+            console.log('No expo token for device');
+        }
+        return token;
     }
+    catch(er) {
+        let message = ('Device not connected or could not get token =>' + '' + er);
+        obj_this.on_error(er, message);
+        return message;
+    }
+
 
     render() {
         let obj_this = this;
@@ -262,7 +270,7 @@ export default class AppNavigator extends React.Component {
         }
 
 
-        function render_alerts(items_list, name){
+        function render_alerts(items_list, name) {
             return (
                 <View>
                     <View>
@@ -272,8 +280,8 @@ export default class AppNavigator extends React.Component {
                         {
                             items_list.map(function (item, j) {
                                 let title = "Subscribe => " + item.channel__name + ' Status';
-                                if(item.active){
-                                    title = "Unsubscribe => " + item.channel__name +' Status';
+                                if (item.active) {
+                                    title = "Unsubscribe => " + item.channel__name + ' Status';
                                 }
                                 return (
                                     <View key={j} style={styles.btnstyle}>
@@ -311,129 +319,3 @@ const styles = StyleSheet.create({
         padding: 10
     }
 });
-
-
-// import React from 'react';
-// import {
-//     SafeAreaView,
-//     StyleSheet,
-//     ScrollView,
-//     View,
-//     Text,
-//     FlatList,
-//     StatusBar,
-// } from 'react-native';
-
-// import {
-//     Header,
-//     Colors
-// } from 'react-native/Libraries/NewAppScreen';
-
-// import BackgroundFetch from "react-native-background-fetch";
-
-// class App extends React.Component {
-//     constructor(props) {
-//         super(props);
-//         this.state = {
-//             events: []
-//         };
-//     }
-
-//     componentDidMount() {
-//         // Initialize BackgroundFetch ONLY ONCE when component mounts.
-//         this.initBackgroundFetch();
-//     }
-
-//     async initBackgroundFetch() {
-//         // BackgroundFetch event handler.
-//         const onEvent = async (taskId) => {
-//             console.log('[BackgroundFetch] task: ', taskId);
-//             // Do your background work...
-//             await this.addEvent(taskId);
-//             // IMPORTANT:  You must signal to the OS that your task is complete.
-//             BackgroundFetch.finish(taskId);
-//         }
-
-//         // Timeout callback is executed when your Task has exceeded its allowed running-time.
-//         // You must stop what you're doing immediately BackgroundFetch.finish(taskId)
-//         const onTimeout = async (taskId) => {
-//             console.warn('[BackgroundFetch] TIMEOUT task: ', taskId);
-//             BackgroundFetch.finish(taskId);
-//         }
-
-//         // Initialize BackgroundFetch only once when component mounts.
-//         let status = await BackgroundFetch.configure({ minimumFetchInterval: 15 }, onEvent, onTimeout);
-
-//         console.log('[BackgroundFetch] configure status: ', status);
-//     }
-
-//     // Add a BackgroundFetch event to <FlatList>
-//     addEvent(taskId) {
-//         // Simulate a possibly long-running asynchronous task with a Promise.
-//         return new Promise((resolve, reject) => {
-//             this.setState(state => ({
-//                 events: [...state.events, {
-//                     taskId: taskId,
-//                     timestamp: (new Date()).toString()
-//                 }]
-//             }));
-//             resolve();
-//         });
-//     }
-
-//     render() {
-//         return (
-//             <>
-//                 <StatusBar barStyle="dark-content" />
-//                 <SafeAreaView>
-//                     <ScrollView
-//                         contentInsetAdjustmentBehavior="automatic"
-//                         style={styles.scrollView}>
-//                         <Header />
-
-//                         <View style={styles.body}>
-//                             <View style={styles.sectionContainer}>
-//                                 <Text style={styles.sectionTitle}>BackgroundFetch Demo</Text>
-//                             </View>
-//                         </View>
-//                     </ScrollView>
-//                     <View style={styles.sectionContainer}>
-//                         <FlatList
-//                             data={this.state.events}
-//                             renderItem={({ item }) => (<Text>[{item.taskId}]: {item.timestamp}</Text>)}
-//                             keyExtractor={item => item.timestamp}
-//                         />
-//                     </View>
-//                 </SafeAreaView>
-//             </>
-//         );
-//     }
-// }
-
-// const styles = StyleSheet.create({
-//     scrollView: {
-//         backgroundColor: Colors.lighter,
-//     },
-//     body: {
-//         backgroundColor: Colors.white,
-//     },
-//     sectionContainer: {
-//         marginTop: 32,
-//         paddingHorizontal: 24,
-//     },
-//     sectionTitle: {
-//         fontSize: 24,
-//         fontWeight: '600',
-//         color: Colors.black,
-//     },
-//     sectionDescription: {
-//         marginTop: 8,
-//         fontSize: 18,
-//         fontWeight: '400',
-//         color: Colors.dark,
-//     },
-// });
-
-// export default App;
-
-
