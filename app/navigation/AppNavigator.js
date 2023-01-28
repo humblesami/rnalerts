@@ -1,10 +1,12 @@
 import React from 'react';
 import * as Notifications from 'expo-notifications';
 import SoundPlayer from 'react-native-sound-player';
-import OpenURLButton from '../components/openurl';
-import * as Device from 'expo-device';
 import AppButton from '../components/Button';
 import { View, AsyncStorage, Text, StyleSheet, Clipboard, LogBox } from 'react-native';
+
+//Password
+//sami92
+//CN=Sami Akram, OU=92news, O=92news, L=Lahore, ST=Punjab, C=pk
 
 LogBox.ignoreLogs(['Warning: ...']);
 LogBox.ignoreAllLogs();
@@ -163,7 +165,7 @@ export default class AppNavigator extends React.Component {
     }
 
     async submit_token(obtained_token) {
-        console.log('\nSubmitting Token => ' + obtained_token);
+        console.log('Submitting Token => ' + obtained_token);
         let my_token = await rnStorage.get('token');
         if (!obtained_token) {
             alert('No token provided');
@@ -194,10 +196,10 @@ export default class AppNavigator extends React.Component {
         }).then((json_data) => {
             if (json_data.status == 'success') {
                 rnStorage.save('token', obtained_token).then(() => { });
-                if(!json_data.channels.length){
+                if (!json_data.channels.length) {
                     obj_this.on_error(er, 'No active channels found');
                 }
-                else{
+                else {
                     obj_this.setState({ subscriptions: json_data.channels });
                 }
             }
@@ -213,7 +215,8 @@ export default class AppNavigator extends React.Component {
 
     async registerForPushNotificationsAsync() {
         let token;
-        if (Device.isDevice) {
+        try {
+
             const { status: existingStatus } = await Notifications.getPermissionsAsync();
             let finalStatus = existingStatus;
             if (existingStatus !== 'granted') {
@@ -225,19 +228,20 @@ export default class AppNavigator extends React.Component {
                 return;
             }
             token = (await Notifications.getExpoPushTokenAsync()).data;
-        } else {
-            alert('Must use physical device for Push Notifications');
+            console.log('\n\tPlatForm => ' + Platform.OS);
+            if (Platform.OS === 'android') {
+                Notifications.setNotificationChannelAsync('down_alerts', {
+                    name: 'main',
+                    importance: Notifications.AndroidImportance.MAX,
+                    vibrationPattern: [0, 250, 250, 250],
+                    lightColor: '#FF231F7C',
+                });
+            }
         }
-
-        if (Platform.OS === 'android') {
-            Notifications.setNotificationChannelAsync('down_alerts', {
-                name: 'main',
-                importance: Notifications.AndroidImportance.MAX,
-                vibrationPattern: [0, 250, 250, 250],
-                lightColor: '#FF231F7C',
-            });
+        catch (ex) {
+            console.log('Error in device ', er)
         }
-        if(!token){
+        if (!token) {
             console.log('No expo token for device');
         }
         return token;
