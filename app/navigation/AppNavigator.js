@@ -60,7 +60,7 @@ export default class AppNavigator extends React.Component {
     }
 
     on_error(oner, prefix) {
-        console.log('\nError function => ' + prefix);
+        console.log('\nError => ' + prefix);
         prefix = this.state.error_message = prefix + '\n';
         this.setState({ error_message: prefix });
     }
@@ -117,12 +117,12 @@ export default class AppNavigator extends React.Component {
 
     async get_server_list() {
         let endpoint = '/servers/list';
-        let resp = apiClient.get_data(endpoint);
+        let resp = await apiClient.get_data(endpoint);
         if (resp.status == 'ok') {
-            this.setState({ servers_list: json.list });
+            this.setState({ servers_list: resp.list });
         }
         else {
-            this.on_error(0, resp.message);
+            this.on_error(0, resp.message || 'Error in server list');
         }
     }
 
@@ -132,25 +132,18 @@ export default class AppNavigator extends React.Component {
 
     async sendNotification() {
 
-        let endpoint = '/messages/send';
-        try {
-            let resp = await fetch(this.baseUrl + endpoint);
-            let json = await resp.json();
-            console.log('\nSend Message', json);
-        }
-        catch (er3) {
-            console.log('\nError in send get =>', er3);
-        }
     }
 
     async toggleNotification(alert_id) {
         let obj_this = this;
         let item = obj_this.state.subscriptions.find((x) => x.channel__name == alert_id);
         item.active = !item.active;
-        let endpoint = '/expo/toggle/' + alert_id + '/' + obj_this.state.expoToken;
-        let resp = apiClient.get_data(endpoint);
+        obj_this.setState({});
+        let endpoint = '/expo/toggle';
+        let data = {channel: alert_id, push_token: obj_this.state.expoToken};
+        let resp = await apiClient.post_data(endpoint, data);
         if (resp.status != 'ok') {
-            obj_this.on_error(er4, resp.message);
+            obj_this.on_error(0, resp.message);
         }
     }
 
@@ -161,16 +154,17 @@ export default class AppNavigator extends React.Component {
             return;
         }
         let obj_this = this;
-        let endpoint = '/expo/submit/' + obtained_token;
-        let json_data = apiClient.post_data(endpoint, { obtained_token: obtained_token });
+        let endpoint = '/expo/submit';
+        let json_data = await apiClient.post_data(endpoint, { obtained_token: obtained_token });
         if (json_data.status == 'ok') {
-            apiClient.rnStorage.save('token', obtained_token).then(() => { });
             if (!json_data.channels.length) {
                 obj_this.on_warning('No active channels found');
             }
             else {
                 obj_this.setState({ subscriptions: json_data.channels });
             }
+            apiClient.rnStorage.save('push_token', obtained_token).then(() => { });
+            apiClient.rnStorage.save('auth_token', json_data.auth_token).then(() => { });
         }
         else {
             obj_this.on_error(0, json_data.message || 'Invalid Response from submit');
@@ -215,9 +209,18 @@ export default class AppNavigator extends React.Component {
         let obj_this = this;
         let res_list = obj_this.state.servers_list;
         let endpoint = '/servers/check-only';
-        let json = apiClient.get_data(endpoint);
+        let json = await apiClient.get_data(endpoint);
+        console.log('\njson', json);
+        if(!json){
+            obj_this.check_servers_client();
+            return;
+        }
+        if(json.message){
+            obj_this.on_error(0, 'Failed to connect server, now checking at client');
+        }
         if (json.status != 'ok') {
-            obj_this.on_error(0, json.message);
+            obj_this.check_servers_client();
+            return;
         }
         else {
             let uc = 0;
@@ -238,24 +241,18 @@ export default class AppNavigator extends React.Component {
     check_servers_client() {
         console.log('\nBefore check', Date());
         let obj_this = this;
-        let promises = [];
         let res_list = obj_this.state.servers_list;
         console.log('\nList', res_list);
+        let i = 0;
         for (let item of res_list) {
-            promises.push(fetch(item.check_path).then((resp) => { return { url: item.check_path, status: resp.status } }));
+            fetch(item.check_path).then((resp) => {
+                res_list.find(x => x.check_path == resp.url).status = resp.status;
+                 i += 1;
+                if(i == res_list.length){
+                    obj_this.setState({ servers_list: res_list });
+                }
+            });
         }
-        console.log('Chanined');
-        Promise.all(promises).then((values) => {
-            console.log('\n\nObtained list', values);
-            for (let item of values) {
-                res_list.find(x => x.check_path == item.url).status = item.status;
-            }
-            obj_this.setState({ servers_list: res_list });
-            console.log('\After check', Date());
-            //console.log('\nServer List', values);
-        }).catch(er => {
-            obj_this.on_error(0, '' + er);
-        });
     }
 
     render() {
@@ -264,8 +261,8 @@ export default class AppNavigator extends React.Component {
         function show_errors() {
             if (obj_this.state.error_message) {
                 return (
-                    <View style={[styles.container, styles.er_style]}>
-                        <Text>{obj_this.state.error_message}</Text>
+                    <View style={styles.er_style}>
+                        <Text color='red'>{obj_this.state.error_message}</Text>
                     </View>
                 );
             }
@@ -390,6 +387,7 @@ const styles = StyleSheet.create({
         borderColor: 'green',
     },
     er_style: {
+        marginVertical: 10,
         color: 'red',
         fontWeight: 'bold',
         fontSize: 14,

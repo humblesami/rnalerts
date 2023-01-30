@@ -1,13 +1,7 @@
 import { AsyncStorage } from 'react-native';
 let apiClient = {
-    get_data: async function(endpoint, req_data={}){
-        let res = await fetch_request(endpoint, 'GET', req_data);
-        return res;
-    },
-    ping: async function(url){
-        let res = await fetch_request(url, 'ping', {});
-        return res;
-    },
+    get_data: null,
+    ping: null,
     api_server_url : '',
     set_server_url: null,
     rnStorage: null,
@@ -43,9 +37,9 @@ let apiClient = {
     }
 
     async function fetch_request(endpoint, method, req_data={}) {
-        let api_base_url = apiClient.api_server_url + '/api';
+        let api_base_url = apiClient.api_server_url;
         let server_endpoint = api_base_url + endpoint;
-        let fetchController = initFetchController(8);
+        let fetchController = initFetchController(80);
         try{
             let fetch_options = {
                 method: method,
@@ -55,7 +49,15 @@ let apiClient = {
                     fetch_options.data = req_data;
                 }
                 else{
-                    fetch_options.body = req_data;
+                    fetch_options.body = JSON.stringify(req_data);
+                    fetch_options.headers = {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    };
+                    let auth_token = await apiClient.rnStorage.get('auth_token');
+                    if(auth_token){
+                        fetch_options.headers['Authorization'] = 'Token ' + auth_token;
+                    }
                 }
             }
             else{
@@ -64,11 +66,11 @@ let apiClient = {
             }
 
             fetch_options.signal = fetchController.signal;
-
             const fetchResult = await fetch(server_endpoint, fetch_options);
             let status = 'Uknown';
             if(fetchResult && fetchResult.status){ status = fetchResult.status };
-            //console.log('\nStatus = '+status+'\n');
+
+            //console.log('\nStatus = '+status+'\n'+fetchResult.url);
             if(method == 'ping'){
                 fetchController.clear_it('after result => ' + fetchResult.status);
                 return Promise.resolve(fetchResult.status);
@@ -77,6 +79,7 @@ let apiClient = {
                 return {status: 'failed', data: 'Failure 2 in request '};
             }
             const result = await fetchResult.json(); // parsing the response
+            //console.log('\nResp => ', result.status, result);
             if(result.status == 'success'){
                 result.status = 'ok';
             }
@@ -91,7 +94,7 @@ let apiClient = {
             fetchController.clear_it('after result => ' + fetchResult.status);
 
             result.server_endpoint = server_endpoint;
-            console.log('Request serverd from => '+server_endpoint);
+            //console.log('Request serverd from => '+server_endpoint);
             return result;
         }
         catch(er_api){
