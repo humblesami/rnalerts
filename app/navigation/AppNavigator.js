@@ -2,13 +2,9 @@ import React from 'react';
 import * as Notifications from 'expo-notifications';
 import SoundPlayer from 'react-native-sound-player';
 import AppButton from '../components/Button';
-import { View, AsyncStorage, Text, StyleSheet, Clipboard, LogBox, ScrollView } from 'react-native';
+import apiClient from '../api/client';
+import { View, Text, StyleSheet, Clipboard, LogBox, ScrollView } from 'react-native';
 
-//expo push:android:upload --api-key AAAAESHut6U:APA91bEsZhDfm-b8GfZMVGXbkn_diHmwjim7tZH4riFMBwJQftx5JAspq5gL4yI7cfXY5G5rcAOHmhzCD8GKlWGaBF7RGuVH_ienZm8u3JUR4QD5icoZcpJlxnFXN8kIM2zdbnD0xLpj
-//keytool -genkey -v -keystore my-release-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
-//Password
-//sami92
-//CN=Sami Akram, OU=92news, O=92news, L=Lahore, ST=Punjab, C=pk
 
 LogBox.ignoreLogs(['Warning: ...']);
 LogBox.ignoreAllLogs();
@@ -20,25 +16,6 @@ Notifications.setNotificationHandler({
         shouldPlaySound: true,
     }),
 });
-
-
-let rnStorage = {
-    save: async (key, value) => {
-        try {
-            await AsyncStorage.setItem(key, value);
-        } catch (eor1) {
-            // Error saving data
-        }
-    },
-    get: async (key) => {
-        try {
-            const value = await AsyncStorage.getItem(key);
-            return value;
-        } catch (eor2) {
-            // Error retrieving data
-        }
-    }
-}
 
 
 export default class AppNavigator extends React.Component {
@@ -84,6 +61,7 @@ export default class AppNavigator extends React.Component {
 
     on_error(oner, prefix) {
         console.log('\nError function => ' + prefix);
+        prefix = this.state.error_message = prefix + '\n';
         this.setState({ error_message: prefix });
     }
 
@@ -138,15 +116,13 @@ export default class AppNavigator extends React.Component {
     }
 
     async get_server_list() {
-        let endpoint = this.baseUrl + '/servers/list';
-        try {
-            let resp = await fetch(endpoint);
-            let json = await resp.json();
+        let endpoint = '/servers/list';
+        let resp = apiClient.get_data(endpoint);
+        if (resp.status == 'ok') {
             this.setState({ servers_list: json.list });
         }
-        catch (er2) {
-            this.on_error(0, ' Error in ' + endpoint + ' => ' + er2);
-            return [];
+        else {
+            this.on_error(0, resp.message);
         }
     }
 
@@ -169,75 +145,36 @@ export default class AppNavigator extends React.Component {
 
     async toggleNotification(alert_id) {
         let obj_this = this;
-        try {
-            let item = obj_this.state.subscriptions.find((x) => x.channel__name == alert_id);
-            item.active = !item.active;
-            let endpoint = '/expo/toggle/' + alert_id + '/' + obj_this.state.expoToken;
-            let resp = await fetch(this.baseUrl + endpoint);
-            let json = await resp.json();
-            if (json.status == 'success') {
-
-                obj_this.setState({ subscriptions: obj_this.state.subscriptions });
-            }
-        }
-        catch (er4) {
-            let message = ('Error in toggle => ' + er4);
-            obj_this.on_error(er4, message);
+        let item = obj_this.state.subscriptions.find((x) => x.channel__name == alert_id);
+        item.active = !item.active;
+        let endpoint = '/expo/toggle/' + alert_id + '/' + obj_this.state.expoToken;
+        let resp = apiClient.get_data(endpoint);
+        if (resp.status != 'ok') {
+            obj_this.on_error(er4, resp.message);
         }
     }
 
     async submit_token(obtained_token) {
         console.log('\nSubmitting Token => ' + obtained_token);
-        let my_token = await rnStorage.get('token');
         if (!obtained_token) {
             alert('No token provided');
             return;
         }
         let obj_this = this;
-        let data = { obtained_token: obtained_token };
         let endpoint = '/expo/submit/' + obtained_token;
-        if (my_token) {
-            endpoint = '/expo/channels/' + obtained_token;
+        let json_data = apiClient.post_data(endpoint, { obtained_token: obtained_token });
+        if (json_data.status == 'ok') {
+            apiClient.rnStorage.save('token', obtained_token).then(() => { });
+            if (!json_data.channels.length) {
+                obj_this.on_warning('No active channels found');
+            }
+            else {
+                obj_this.setState({ subscriptions: json_data.channels });
+            }
         }
-        endpoint = this.baseUrl + endpoint;
-        let postOptions = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-        };
-        fetch(endpoint).then((response) => {
-            if (!response.ok) {
-                console.log('\nError in submit => ' + endpoint);
-                return { status: 'error', message: 'Invalid response => ' + response.status + ' from ' + endpoint };
-            }
-            else {
-                return response.json();
-            }
-        }).then((json_data) => {
-            if (json_data.status == 'success') {
-                if (json_data.status == 'success') {
-                    rnStorage.save('token', obtained_token).then(() => { });
-                    if (!json_data.channels.length) {
-                        obj_this.on_warning('No active channels found');
-                    }
-                    else {
-                        obj_this.setState({ subscriptions: json_data.channels });
-                    }
-                }
-                else {
-                    obj_this.on_error(0, json_data.message);
-                }
-            }
-            else {
-                obj_this.on_error(0, json_data.message || 'Invalid Response from submit');
-            }
-        }).catch((er5) => {
-            console.log('\nIn submit ' + endpoint + '\n')
-            let message = ('Error in submit token => ' + '' + er5);
-            obj_this.on_error(er5, message);
-        });
+        else {
+            obj_this.on_error(0, json_data.message || 'Invalid Response from submit');
+        }
     }
 
     async registerForPushNotificationsAsync() {
@@ -277,23 +214,24 @@ export default class AppNavigator extends React.Component {
     async check_servers() {
         let obj_this = this;
         let res_list = obj_this.state.servers_list;
-        let endpoint = this.baseUrl + '/servers/check-only';
-        try {
-            let resp = await fetch(endpoint);
-            let json = await resp.json();
-            console.log('\nCheck only', res_list);
-            for(let item of json.data.servers){
-                let matched = res_list.find(x => x.check_path == item.check_path);
-                if(matched)
-                {
+        let endpoint = '/servers/check-only';
+        let json = apiClient.get_data(endpoint);
+        if (json.status != 'ok') {
+            obj_this.on_error(0, json.message);
+        }
+        else {
+            let uc = 0;
+            for (let item of json.data.responses) {
+                let matched = res_list.find(x => x.check_path == item.server.check_path && item.status != x.status);
+                if (matched) {
                     matched.status = item.status;
+                    uc += 1;
                 }
             }
-            this.setState({ servers_list: res_list });
-        }
-        catch (er2) {
-            this.on_error(0, ' Error in ' + endpoint + ' => ' + er2);
-            return [];
+            if(uc)
+            {
+                this.setState({ servers_list: res_list });
+            }
         }
     }
 
@@ -323,13 +261,16 @@ export default class AppNavigator extends React.Component {
     render() {
         let obj_this = this;
 
-        if (obj_this.state.error_message) {
-            return (
-                <View style={styles.container}>
-                    <Text>{obj_this.state.error_message}</Text>
-                </View>
-            );
+        function show_errors() {
+            if (obj_this.state.error_message) {
+                return (
+                    <View style={[styles.container, styles.er_style]}>
+                        <Text>{obj_this.state.error_message}</Text>
+                    </View>
+                );
+            }
         }
+
 
         function server_status_list(items_list) {
             function get_item_style(status, item_url) {
@@ -415,6 +356,7 @@ export default class AppNavigator extends React.Component {
 
         return (
             <View style={styles.container}>
+                {show_errors()}
                 {show_warning()}
                 {server_status_list(obj_this.state.servers_list)}
                 <AppButton onPress={() => { obj_this.check_servers() }} title="Check Servers Now" />
@@ -446,6 +388,11 @@ const styles = StyleSheet.create({
     },
     green_item: {
         borderColor: 'green',
+    },
+    er_style: {
+        color: 'red',
+        fontWeight: 'bold',
+        fontSize: 14,
     },
     heading2: {
         fontWeight: 'bold',

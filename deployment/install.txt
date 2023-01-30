@@ -1,0 +1,20 @@
+Release APK
+
+cd android && ./gradlew clean && ./gradlew assembleRelease
+
+
+============================================
+
+expo push:android:upload --api-key AAAAESHut6U:APA91bEsZhDfm-b8GfZMVGXbkn_diHmwjim7tZH4riFMBwJQftx5JAspq5gL4yI7cfXY5G5rcAOHmhzCD8GKlWGaBF7RGuVH_ienZm8u3JUR4QD5icoZcpJlxnFXN8kIM2zdbnD0xLpj
+
+===========================================
+Publish
+
+Key Store
+keytool -genkey -v -keystore my-release-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
+Password    =>      sami92
+Info        =>      CN=Sami Akram, OU=92news, O=92news, L=Lahore, ST=Punjab, C=pk
+
+eas build
+
+============================================
