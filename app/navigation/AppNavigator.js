@@ -4,6 +4,8 @@ import SoundPlayer from 'react-native-sound-player';
 import AppButton from '../components/Button';
 import { View, AsyncStorage, Text, StyleSheet, Clipboard, LogBox } from 'react-native';
 
+//expo push:android:upload --api-key AAAAESHut6U:APA91bEsZhDfm-b8GfZMVGXbkn_diHmwjim7tZH4riFMBwJQftx5JAspq5gL4yI7cfXY5G5rcAOHmhzCD8GKlWGaBF7RGuVH_ienZm8u3JUR4QD5icoZcpJlxnFXN8kIM2zdbnD0xLpj
+//keytool -genkey -v -keystore my-release-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
 //Password
 //sami92
 //CN=Sami Akram, OU=92news, O=92news, L=Lahore, ST=Punjab, C=pk
@@ -72,14 +74,15 @@ export default class AppNavigator extends React.Component {
             for (let key in values) {
                 this.state[key] = values[key];
             }
-            console.log(obj_this.st_upd, values);
             return;
         }
         obj_this.st_upd += 1;
+        console.log(values);
         super.setState(values);
     }
 
     on_error(er, prefix) {
+        console.log('Error => '+prefix);
         this.setState({ error_message: prefix });
     }
 
@@ -195,16 +198,21 @@ export default class AppNavigator extends React.Component {
             }
         }).then((json_data) => {
             if (json_data.status == 'success') {
-                rnStorage.save('token', obtained_token).then(() => { });
-                if (!json_data.channels.length) {
-                    obj_this.on_error(er, 'No active channels found');
+                if (json_data.status == 'success') {
+                    rnStorage.save('token', obtained_token).then(() => { });
+                    if (!json_data.channels.length) {
+                        obj_this.on_error(er, 'No active channels found');
+                    }
+                    else {
+                        obj_this.setState({ subscriptions: json_data.channels });
+                    }
                 }
                 else {
-                    obj_this.setState({ subscriptions: json_data.channels });
+                    obj_this.on_error(0, json_data.message);
                 }
             }
             else {
-                obj_this.on_error(0, json_data.message);
+                obj_this.on_error(0, json_data.message || 'Invalid Response from submit');
             }
         }).catch((er) => {
             console.log('\n' + endpoint + '\n')
@@ -246,33 +254,17 @@ export default class AppNavigator extends React.Component {
         }
         return token;
     }
-    catch(er) {
-        let message = ('Device not connected or could not get token =>' + '' + er);
-        obj_this.on_error(er, message);
-        return message;
-    }
-
 
     render() {
         let obj_this = this;
 
-        function get_stop_btn() {
-
-            if (obj_this.state.error_message) {
-                return (
-                    <View style={styles.container}>
-                        <Text>{obj_this.state.error_message}</Text>
-                    </View>
-                );
-            }
+        if (obj_this.state.error_message) {
+            return (
+                <View style={styles.container}>
+                    <Text>{obj_this.state.error_message}</Text>
+                </View>
+            );
         }
-
-        function get_submit_button() {
-            if (!obj_this.state.tokenSent) {
-                return (<AppButton onPress={() => { obj_this.submit_token() }} title="Submit Token" />);
-            }
-        }
-
 
         function render_alerts(items_list, name) {
             return (

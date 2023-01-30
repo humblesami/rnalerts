@@ -1,7 +1,7 @@
 {
     "expo": {
-        "name": "92 Alerts1",
-        "slug": "serveralerts92",
+        "name": "92 Alerts",
+        "slug": "DoneWithIt",
         "platforms": [
             "ios",
             "android",
@@ -38,12 +38,6 @@
         "ios": {
             "supportsTablet": true,
             "bundleIdentifier": "com.channel92news.push"
-        },
-        "extraa1": {
-            "eas": {
-                "projectId": "push-4cb3e",
-                "default_projectId": "0dad8d7a-9fe5-40b3-8589-eafca5273909"
-            }
         },
         "extra": {
             "eas": {
