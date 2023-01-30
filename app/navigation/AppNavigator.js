@@ -46,7 +46,6 @@ export default class AppNavigator extends React.Component {
     responseListener = {};
     mounted = 0;
     baseUrl = 'https://dap.92newshd.tv';
-    baseUrl = 'http://127.0.0.1:8000';
     constructor() {
         super();
         this.state = {
