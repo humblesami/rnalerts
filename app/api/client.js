@@ -12,8 +12,8 @@ let apiClient = {
     let active_server_url = 'https://dap.92newshd.tv';
     let fetch_timeout = 10;
 
-    active_server_url = 'http://127.0.0.1:8000';
-    fetch_timeout = 200;
+    //active_server_url = 'http://127.0.0.1:8000';
+    //fetch_timeout = 200;
 
 
     async function fetch_request(endpoint, method, req_data={}) {
@@ -85,28 +85,6 @@ let apiClient = {
             console.log(res.message);
             return Promise.resolve(res);
         }
-    }
-
-    function reject_promise(err, endpoint){
-        let stack = '';
-        if(err.stack){
-            stack = err.stack.split('\n');
-        }
-        else{
-            stack = err.split('\n');
-            if(stack.length > 3){
-                stack = stack.slice(0, 3);
-            }
-            stack = stack.join('\n\n');
-        }
-
-        let error_message = err.message || '' + err;
-
-        // alert(error_message);
-        // error_message = stack;
-        return new Promise(function (resolve, reject) {
-            reject(error_message+ ' from '+endpoint);
-        });
     }
 
     apiClient = {
