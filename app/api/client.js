@@ -25,6 +25,7 @@ let apiClient = {
 
         let api_base_url = apiClient.api_server_url;
         let server_endpoint = api_base_url + endpoint;
+        let resp_status = 1000;
         try{
             let loading_activities = apiClient.current_component.state.loading;
             loading_activities[endpoint] = 1;
@@ -93,8 +94,10 @@ let apiClient = {
         catch(er_api){
             explicitly_hide_loader(endpoint);
             clearTimeout(timeoutId);
-            let res = {status: 'failed', message: 'Request to ' + endpoint + ' failed'};
-            console.log(res.message);
+            let message = 'Request failed => ' + endpoint.substr(1);
+            let res = {status: 'failed', message: message};
+            apiClient.current_component.setState({error_message: message});
+            console.log('Request failed => ' +server_endpoint);
             return Promise.resolve(res);
         }
     }

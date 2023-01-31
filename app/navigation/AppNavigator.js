@@ -62,12 +62,6 @@ export default class AppNavigator extends React.Component {
         super.setState(values);
     }
 
-    on_error(oner, prefix) {
-        console.log('\nError => ' + prefix);
-        prefix = this.state.error_message = prefix + '\n';
-        this.setState({ error_message: prefix });
-    }
-
     on_warning(txt) {
         this.setState({ warning: txt });
     }
@@ -119,9 +113,6 @@ export default class AppNavigator extends React.Component {
         if (resp.status == 'ok') {
             this.setState({ servers_list: resp.list });
         }
-        else {
-            this.on_error(0, resp.message || 'Error in server list');
-        }
     }
 
     playSound() {
@@ -140,10 +131,7 @@ export default class AppNavigator extends React.Component {
         let endpoint = '/expo/toggle';
         let data = {channel: alert_id, push_token: obj_this.state.expoToken};
         let resp = await apiClient.post_data(endpoint, data);
-        if (resp.status != 'ok') {
-            obj_this.on_error(0, resp.message);
-        }
-        else{
+        if (resp.status == 'ok') {
             let temp1 = 'subscribed';
             if(!item.active){
                 temp1 = 'unsubscribed';
@@ -173,9 +161,6 @@ export default class AppNavigator extends React.Component {
             }
             apiClient.rnStorage.save('push_token', obtained_token).then(() => { });
             apiClient.rnStorage.save('auth_token', json_data.auth_token).then(() => { });
-        }
-        else {
-            obj_this.on_error(0, json_data.message || 'Invalid Response from submit');
         }
     }
 
@@ -222,9 +207,6 @@ export default class AppNavigator extends React.Component {
         if(!json){
             obj_this.check_servers_client();
             return;
-        }
-        if(json.message){
-            obj_this.on_error(0, 'Failed to connect server, now checking at client');
         }
         if (json.status != 'ok') {
             obj_this.check_servers_client();
