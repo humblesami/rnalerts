@@ -1,13 +1,16 @@
 import { AsyncStorage } from 'react-native';
+
 let apiClient = {
-    get_data: null,
     ping: null,
-    api_server_url : '',
-    set_server_url: null,
+    get_data: null,
     rnStorage: null,
     post_data: null,
-    vote_count_image: ''
+    api_server_url : '',
+    vote_count_image: '',
+    set_server_url: null,
+    current_component: null,
 };
+
 (function () {
     let active_server_url = 'https://dap.92newshd.tv';
     let fetch_timeout = 10;
@@ -17,13 +20,16 @@ let apiClient = {
 
 
     async function fetch_request(endpoint, method, req_data={}) {
-
         const abort_controller = new AbortController();
         const timeoutId = setTimeout(() => abort_controller.abort(), fetch_timeout * 1000);
 
         let api_base_url = apiClient.api_server_url;
         let server_endpoint = api_base_url + endpoint;
         try{
+            let loading_activities = apiClient.current_component.state.loading;
+            loading_activities[endpoint] = 1;
+            apiClient.current_component.setState({loading : loading_activities});
+
             let fetch_options = {
                 method: method,
             }
@@ -54,37 +60,54 @@ let apiClient = {
 
             let status = 'Uknown';
             if(fetchResult && fetchResult.status){ status = fetchResult.status };
-            clearTimeout(timeoutId);
 
+            let result = {};
             if(method == 'ping'){
-                return Promise.resolve(fetchResult.status);
+                result = fetchResult.status;
             }
-            if(fetchResult.status != 200){
-                return Promise.resolve({status: 'failed', message: 'Failed to reach => ' + endpoint});
-            }
-
-            const result = await fetchResult.json(); // parsing the response
-            if(result.status == 'success'){
-                result.status = 'ok';
-            }
-            if(result.status !='ok'){
-                if(result.error){
-                   result.message = result.error;
+            else if(fetchResult.status != 200){
+                if(fetchResult.status == 403 || fetchResult.status == 401){
+                    console.log('\nUnuthorized1 ',fetch_options);
                 }
-                if(result.data){
-                    result.message = result.error;
-                }
+                result = {status: 'failed', message: 'Failed to reach => ' + endpoint};
             }
-            result.server_endpoint = server_endpoint;
+            else{
+                result = await fetchResult.json(); // parsing the response
+                if(result.status == 'success'){
+                    result.status = 'ok';
+                }
+                if(result.status !='ok'){
+                    if(result.error){
+                       result.message = result.error;
+                    }
+                    if(result.data){
+                        result.message = result.error;
+                    }
+                }
+                result.server_endpoint = server_endpoint;
+            }
+            explicitly_hide_loader(endpoint);
+            clearTimeout(timeoutId);
             return result;
         }
         catch(er_api){
-            // alert('er is = ' + JSON.stringify(er));
+            explicitly_hide_loader(endpoint);
             clearTimeout(timeoutId);
             let res = {status: 'failed', message: 'Request to ' + endpoint + ' failed'};
             console.log(res.message);
             return Promise.resolve(res);
         }
+    }
+
+    function explicitly_hide_loader(endpoint){
+        let last_rendered = apiClient.current_component.last_rendered;
+        delete apiClient.current_component.state.loading[endpoint];
+        let loading_trace = apiClient.current_component.state.loading;
+        setTimeout(()=>{
+            if(apiClient.current_component.last_rendered == last_rendered){
+                apiClient.current_component.setState({loading: loading_trace});
+            }
+        }, 500);
     }
 
     apiClient = {

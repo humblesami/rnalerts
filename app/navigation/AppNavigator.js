@@ -3,7 +3,7 @@ import * as Notifications from 'expo-notifications';
 import SoundPlayer from 'react-native-sound-player';
 import AppButton from '../components/Button';
 import apiClient from '../api/client';
-import { View, Text, StyleSheet, Clipboard, LogBox, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Clipboard, LogBox, ScrollView, ActivityIndicator } from 'react-native';
 
 
 LogBox.ignoreLogs(['Warning: ...']);
@@ -21,6 +21,7 @@ Notifications.setNotificationHandler({
 export default class AppNavigator extends React.Component {
     notificationListener = {}
     responseListener = {};
+    last_rendered = '';
     mounted = 0;
     baseUrl = 'https://dap.92newshd.tv';
     constructor() {
@@ -30,8 +31,10 @@ export default class AppNavigator extends React.Component {
             error_message: '',
             warning: '',
             tokenSent: 0,
+            loading: {},
             servers_list: [],
             subscriptions: [],
+            done_message: '',
             bg_log: 'No bg worker yet',
             copyBtnLabel: 'Copy token',
         };
@@ -71,18 +74,13 @@ export default class AppNavigator extends React.Component {
 
     componentDidMount() {
         let obj_this = this;
-
-        // This listener is fired whenever a notification is received while the app is foregrounded
+        apiClient.current_component = obj_this;
         obj_this.notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-            console.log('\nNotification Body', notification.body);
+            let category_id = notification.request.content.categoryIdentifier;
             //obj_this.playSound();
         });
-
-        // This listener is fired whenever a user taps on or interacts with a notification
-        // (works when app is foregrounded, backgrounded, or killed)
         obj_this.responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             let category_id = response.notification.request.content.categoryIdentifier;
-            //console.log('\nNotification here' + category_id);
         });
 
         obj_this.mounted = 1;
@@ -144,6 +142,16 @@ export default class AppNavigator extends React.Component {
         let resp = await apiClient.post_data(endpoint, data);
         if (resp.status != 'ok') {
             obj_this.on_error(0, resp.message);
+        }
+        else{
+            let temp1 = 'subscribed';
+            if(!item.active){
+                temp1 = 'unsubscribed';
+            }
+            obj_this.setState({done_message: 'Successfully '+temp1});
+            setTimeout(()=>{
+                obj_this.setState({done_message: ''});
+            }, 1500)
         }
     }
 
@@ -257,7 +265,7 @@ export default class AppNavigator extends React.Component {
 
     render() {
         let obj_this = this;
-
+        obj_this.last_rendered = new Date();
         function show_errors() {
             if (obj_this.state.error_message) {
                 return (
@@ -348,11 +356,28 @@ export default class AppNavigator extends React.Component {
             }
         }
 
-        // <AppButton onPress={() => { obj_this.run_bg_process() }} title="Start Bg Worker" />
-        // <Text>{obj_this.state.bg_log}</Text>
+        function show_activity_indicator(){
+            if(Object.keys(obj_this.state.loading).length){
+                return (<View style={styles.loader}><ActivityIndicator color="orange" size="large" /></View>);
+            }
+        }
+
+        function show_done(){
+            if(obj_this.state.done_message){
+                return (
+                    <View style={styles.loader}>
+                        <View style={styles.green_container}>
+                            <Text style={styles.done_message}>{obj_this.state.done_message}</Text>
+                        </View>
+                    </View>
+                );
+            }
+        }
 
         return (
             <View style={styles.container}>
+                {show_activity_indicator()}
+                {show_done()}
                 {show_errors()}
                 {show_warning()}
                 {server_status_list(obj_this.state.servers_list)}
@@ -369,6 +394,28 @@ const styles = StyleSheet.create({
     container: {
         marginTop: 30,
         padding: 10
+    },
+    green_container:{
+        backgroundColor: 'green',
+        padding: 40,
+        width: '80%',
+        zIndex: 4,
+        elevation: 4
+    },
+    done_message:{
+        fontSize: 18,
+        color: 'white'
+    },
+    loader: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 3,
+        elevation: 3,
+        alignItems: 'center',
+        justifyContent: 'center'
     },
     list_item: {
         marginVertical: 5,
