@@ -12,36 +12,17 @@ let apiClient = {
     let active_server_url = 'https://dap.92newshd.tv';
     let fetch_timeout = 10;
 
-    //active_server_url = 'http://127.0.0.1:8000';
-    //fetch_timeout = 200;
+    active_server_url = 'http://127.0.0.1:8000';
+    fetch_timeout = 200;
 
-    function initFetchController(time){
-        const controller = new AbortController();
-        const timeout_obj = setTimeout(() => {
-            console.log('aborting after '+ time);
-            controller.abort();
-            clearTimeout(timeout_obj);
-        }, time * 1000);
-        return {
-            signal: controller.signal,
-            cleared: 0,
-            clear_it: function(message){
-                //console.log('clearing with '+message);
-                if(!this.cleared){
-                    this.cleared = 1;
-                    clearTimeout(timeout_obj);
-                }
-                else{
-                    console.log('time already cleared');
-                }
-            }
-        };
-    }
 
     async function fetch_request(endpoint, method, req_data={}) {
+
+        const abort_controller = new AbortController();
+        const timeoutId = setTimeout(() => abort_controller.abort(), fetch_timeout * 1000);
+
         let api_base_url = apiClient.api_server_url;
         let server_endpoint = api_base_url + endpoint;
-        let fetchController = initFetchController(fetch_timeout);
         try{
             let fetch_options = {
                 method: method,
@@ -67,20 +48,21 @@ let apiClient = {
                 fetch_options.method = 'get';
             }
 
-            fetch_options.signal = fetchController.signal;
+            fetch_options.signal = abort_controller.signal;
             const fetchResult = await fetch(server_endpoint, fetch_options);
+            console.log('\nStatus = ' + fetchResult.status + ', Url = ', fetchResult.url);
+
             let status = 'Uknown';
             if(fetchResult && fetchResult.status){ status = fetchResult.status };
+            clearTimeout(timeoutId);
 
-            //console.log('\nStatus = '+status+'\n'+fetchResult.url);
             if(method == 'ping'){
-                fetchController.clear_it('after result => ' + fetchResult.status);
                 return Promise.resolve(fetchResult.status);
             }
             if(fetchResult.status != 200){
-                return {status: 'failed', data: 'Failure 2 in request '};
+                return Promise.resolve({status: 'failed', message: 'Failed to reach => ' + endpoint});
             }
-            console.log('\nStatus = ' + fetchResult.status + ', Url = ', fetchResult.url);
+
             const result = await fetchResult.json(); // parsing the response
             if(result.status == 'success'){
                 result.status = 'ok';
@@ -93,18 +75,15 @@ let apiClient = {
                     result.message = result.error;
                 }
             }
-            fetchController.clear_it('after result => ' + fetchResult.status);
-
             result.server_endpoint = server_endpoint;
-            //console.log('Request serverd from => '+server_endpoint);
             return result;
         }
         catch(er_api){
             // alert('er is = ' + JSON.stringify(er));
-            fetchController.clear_it('clear on falure');
-            let res = {status: 'failed', message: 'Failure 1 in request ' + server_endpoint + ' => ' + er_api};
+            clearTimeout(timeoutId);
+            let res = {status: 'failed', message: 'Request to ' + endpoint + ' failed'};
             console.log(res.message);
-            return res;
+            return Promise.resolve(res);
         }
     }
 

@@ -261,8 +261,8 @@ export default class AppNavigator extends React.Component {
         function show_errors() {
             if (obj_this.state.error_message) {
                 return (
-                    <View style={styles.er_style}>
-                        <Text color='red'>{obj_this.state.error_message}</Text>
+                    <View>
+                        <Text style={styles.er_style}>{obj_this.state.error_message}</Text>
                     </View>
                 );
             }
@@ -387,10 +387,10 @@ const styles = StyleSheet.create({
         borderColor: 'green',
     },
     er_style: {
-        marginVertical: 10,
+        marginVertical: 5,
         color: 'red',
         fontWeight: 'bold',
-        fontSize: 14,
+        fontSize: 15,
     },
     heading2: {
         fontWeight: 'bold',
