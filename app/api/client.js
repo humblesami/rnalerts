@@ -10,8 +10,10 @@ let apiClient = {
 };
 (function () {
     let active_server_url = 'https://dap.92newshd.tv';
-    active_server_url = 'http://127.0.0.1:8000';
+    let fetch_timeout = 10;
 
+    //active_server_url = 'http://127.0.0.1:8000';
+    //fetch_timeout = 200;
 
     function initFetchController(time){
         const controller = new AbortController();
@@ -39,7 +41,7 @@ let apiClient = {
     async function fetch_request(endpoint, method, req_data={}) {
         let api_base_url = apiClient.api_server_url;
         let server_endpoint = api_base_url + endpoint;
-        let fetchController = initFetchController(80);
+        let fetchController = initFetchController(fetch_timeout);
         try{
             let fetch_options = {
                 method: method,
@@ -78,8 +80,8 @@ let apiClient = {
             if(fetchResult.status != 200){
                 return {status: 'failed', data: 'Failure 2 in request '};
             }
+            console.log('\nStatus = ' + fetchResult.status + ', Url = ', fetchResult.url);
             const result = await fetchResult.json(); // parsing the response
-            //console.log('\nResp => ', result.status, result);
             if(result.status == 'success'){
                 result.status = 'ok';
             }
