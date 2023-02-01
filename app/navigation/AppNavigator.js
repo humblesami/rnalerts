@@ -80,20 +80,11 @@ export default class AppNavigator extends React.Component {
     componentDidMount() {
         let obj_this = this;
         apiClient.current_component = this;
-
-        this.get_server_list();
-        obj_this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
-            let category_id = notification.request.content.categoryIdentifier;
-            //obj_this.playSound();
-        });
-        obj_this.responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-            let category_id = response.notification.request.content.categoryIdentifier;
-        });
         try {
             this.registerForPushNotificationsAsync().then(pushToken => {
                 if (!pushToken) {
-                    let message = 'Invalid Token';
-                    obj_this.on_error(0, message);
+                    let message = 'Got no token';
+                    obj_this.setState({ expoToken: message });
                 }
                 else {
                     obj_this.setState({ expoToken: pushToken });
@@ -108,6 +99,15 @@ export default class AppNavigator extends React.Component {
             let message = ('Could not registerPushNotificationsAsync-2');
             obj_this.on_error(er7, message);
         }
+
+        this.get_server_list();
+        obj_this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
+            let category_id = notification.request.content.categoryIdentifier;
+            //obj_this.playSound();
+        });
+        obj_this.responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+            let category_id = response.notification.request.content.categoryIdentifier;
+        });
 
         // Unsubscribe from events
         return () => {

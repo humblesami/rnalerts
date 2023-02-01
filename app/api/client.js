@@ -15,8 +15,8 @@ let apiClient = {
     let active_server_url = 'https://dap.92newshd.tv';
     let fetch_timeout = 10;
 
-    //active_server_url = 'http://127.0.0.1:8000';
-    //fetch_timeout = 200;
+    active_server_url = 'http://127.0.0.1:8000';
+    fetch_timeout = 200;
 
     async function fetch_request(endpoint, method, req_data={}) {
         const abort_controller = new AbortController();
@@ -36,6 +36,7 @@ let apiClient = {
             let fetch_options = {
                 method: method,
             }
+
             if(method != 'ping'){
                 fetch_options.headers = {
                     'Accept': 'application/json',
@@ -66,16 +67,30 @@ let apiClient = {
                 result.message = '' + er_not_accessible;
             }
             raw_result.code = fetchResult.status;
-            if(fetchResult.status == 200){
-                try{
-                    let http_result = await fetchResult.json();
-                    for(let key in http_result){
-                        raw_result[key] = http_result[key];
+            try{
+                let http_result = await fetchResult.json();
+                if(!http_result.status){
+                    http_result.status = 'failed';
+                    if(http_result.detail)
+                    {
+                        http_result.message = http_result.detail;
+                        console.log(fetch_options);
                     }
-                } catch(json_parse_error){
-                    http_result.message = 'Invalid json response';
+                    else{
+                        if(!http_result.message)
+                        {
+                            http_result.message = 'Invalid access '+raw_result.code;
+                        }
+                    }
                 }
+                for(let key in http_result){
+                    raw_result[key] = http_result[key];
+                }
+            } catch(json_parse_error){
+                console.log('\n Not a json');
+                http_result.message = 'Invalid json response';
             }
+
             let api_result = format_result(endpoint, timeoutId, api_base_url, raw_result);
             return api_result;
         }
