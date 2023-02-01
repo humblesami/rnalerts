@@ -19,22 +19,22 @@ Notifications.setNotificationHandler({
 
 
 export default class AppNavigator extends React.Component {
-    notificationListener = {}
-    responseListener = {};
+    errors = [];
     last_rendered = '';
-    mounted = 0;
+    responseListener = {};
+    notificationListener = {};
     baseUrl = 'https://dap.92newshd.tv';
     constructor() {
         super();
         this.state = {
             expoToken: '',
-            error_message: '',
-            warning: '',
             tokenSent: 0,
             loading: {},
             servers_list: [],
             subscriptions: [],
             done_message: '',
+            error_message : '',
+            warning_message: '',
             bg_log: 'No bg worker yet',
             copyBtnLabel: 'Copy token',
         };
@@ -52,7 +52,7 @@ export default class AppNavigator extends React.Component {
 
     setState(values) {
         let obj_this = this;
-        if (!this.mounted) {
+        if (!this.last_rendered) {
             for (let key in values) {
                 this.state[key] = values[key];
             }
@@ -63,23 +63,33 @@ export default class AppNavigator extends React.Component {
     }
 
     on_warning(txt) {
-        this.setState({ warning: txt });
+        this.setState({ warning_message: txt });
+    }
+
+    set_failure_message(message, api_base_url=''){
+        this.errors.push(message);
+        console.log('\nError', message);
+        if(message.startsWith('No result')){
+            let server_error = 'Unable to connect server '+api_base_url;
+            if(this.errors.indexOf(server_error) == -1){
+                this.errors.splice(0, 0, server_error);
+            }
+        }
+        this.state.error_message =  this.errors.join('\n');
     }
 
     componentDidMount() {
         let obj_this = this;
-        apiClient.current_component = obj_this;
-        obj_this.notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+        apiClient.current_component = this;
+
+        this.get_server_list();
+        obj_this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
             let category_id = notification.request.content.categoryIdentifier;
             //obj_this.playSound();
         });
-        obj_this.responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+        obj_this.responseListener = Notifications.addNotificationResponseReceivedListener(response => {
             let category_id = response.notification.request.content.categoryIdentifier;
         });
-
-        obj_this.mounted = 1;
-        this.get_server_list();
-
         try {
             this.registerForPushNotificationsAsync().then(pushToken => {
                 if (!pushToken) {
@@ -102,8 +112,8 @@ export default class AppNavigator extends React.Component {
 
         // Unsubscribe from events
         return () => {
-            Notifications.removeNotificationSubscription(obj_this.notificationListener.current);
-            Notifications.removeNotificationSubscription(obj_this.responseListener.current);
+            Notifications.removeNotificationSubscription(obj_this.notificationListener);
+            Notifications.removeNotificationSubscription(obj_this.responseListener);
         };
     }
 
@@ -123,6 +133,16 @@ export default class AppNavigator extends React.Component {
 
     }
 
+    popup(state_attribute, message){
+        let obj_this = this;
+        obj_this.state[state_attribute] = message;
+        obj_this.setState({});
+        setTimeout(()=>{
+            obj_this.state[state_attribute] = '';
+            obj_this.setState({});
+        }, 1500);
+    }
+
     async toggleNotification(alert_id) {
         let obj_this = this;
         let item = obj_this.state.subscriptions.find((x) => x.channel__name == alert_id);
@@ -136,10 +156,7 @@ export default class AppNavigator extends React.Component {
             if(!item.active){
                 temp1 = 'unsubscribed';
             }
-            obj_this.setState({done_message: 'Successfully '+temp1});
-            setTimeout(()=>{
-                obj_this.setState({done_message: ''});
-            }, 1500)
+            obj_this.popup('done_message', 'Successfully '+temp1);
         }
     }
 
@@ -154,13 +171,16 @@ export default class AppNavigator extends React.Component {
         let json_data = await apiClient.post_data(endpoint, { obtained_token: obtained_token });
         if (json_data.status == 'ok') {
             if (!json_data.channels.length) {
-                obj_this.on_warning('No active channels found');
+                obj_this.popup('warning_message', 'No active channels found');
             }
             else {
                 obj_this.setState({ subscriptions: json_data.channels });
             }
             apiClient.rnStorage.save('push_token', obtained_token).then(() => { });
             apiClient.rnStorage.save('auth_token', json_data.auth_token).then(() => { });
+        }
+        else{
+            obj_this.popup('warning_message', 'No active channels found');
         }
     }
 
@@ -328,15 +348,7 @@ export default class AppNavigator extends React.Component {
             );
         }
 
-        function show_warning() {
-            if (obj_this.state.warning) {
-                return (
-                    <View>
-                        <Text>{obj_this.state.warning}</Text>
-                    </View>
-                );
-            }
-        }
+
 
         function show_activity_indicator(){
             if(Object.keys(obj_this.state.loading).length){
@@ -348,8 +360,20 @@ export default class AppNavigator extends React.Component {
             if(obj_this.state.done_message){
                 return (
                     <View style={styles.loader}>
-                        <View style={styles.green_container}>
-                            <Text style={styles.done_message}>{obj_this.state.done_message}</Text>
+                        <View style={[styles.popup_container, styles.green_container]}>
+                            <Text style={styles.popup_message}>{obj_this.state.done_message}</Text>
+                        </View>
+                    </View>
+                );
+            }
+        }
+
+        function show_warning() {
+            if (obj_this.state.warning_message) {
+                return (
+                    <View style={styles.loader}>
+                        <View style={[styles.popup_container, styles.yellow_container]}>
+                            <Text style={styles.popup_message}>{obj_this.state.warning_message}</Text>
                         </View>
                     </View>
                 );
@@ -377,14 +401,19 @@ const styles = StyleSheet.create({
         marginTop: 30,
         padding: 10
     },
-    green_container:{
-        backgroundColor: 'green',
+    popup_container:{
         padding: 40,
         width: '80%',
         zIndex: 4,
         elevation: 4
     },
-    done_message:{
+    green_container:{
+        backgroundColor: 'green',
+    },
+    yellow_container:{
+        backgroundColor: 'orange',
+    },
+    popup_message:{
         fontSize: 18,
         color: 'white'
     },

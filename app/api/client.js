@@ -15,9 +15,8 @@ let apiClient = {
     let active_server_url = 'https://dap.92newshd.tv';
     let fetch_timeout = 10;
 
-    //active_server_url = 'http://127.0.0.1:8000';
-    //fetch_timeout = 200;
-
+    active_server_url = 'http://127.0.0.1:8000';
+    fetch_timeout = 200;
 
     async function fetch_request(endpoint, method, req_data={}) {
         const abort_controller = new AbortController();
@@ -25,7 +24,10 @@ let apiClient = {
 
         let api_base_url = apiClient.api_server_url;
         let server_endpoint = api_base_url + endpoint;
-        let resp_status = 1000;
+        let raw_result = {
+            status: 'failed', code: 512, message: 'No result',
+            server_endpoint: server_endpoint, endpoint: endpoint.substr(1)
+        }
         try{
             let loading_activities = apiClient.current_component.state.loading;
             loading_activities[endpoint] = 1;
@@ -56,50 +58,62 @@ let apiClient = {
             }
 
             fetch_options.signal = abort_controller.signal;
-            const fetchResult = await fetch(server_endpoint, fetch_options);
-            console.log('\nStatus = ' + fetchResult.status + ', Url = ', fetchResult.url);
-
-            let status = 'Uknown';
-            if(fetchResult && fetchResult.status){ status = fetchResult.status };
-
-            let result = {};
-            if(method == 'ping'){
-                result = fetchResult.status;
+            let fetchResult = {status: 512};
+            try{
+                fetchResult = await fetch(server_endpoint, fetch_options);
             }
-            else if(fetchResult.status != 200){
-                if(fetchResult.status == 403 || fetchResult.status == 401){
-                    console.log('\nUnuthorized1 ',fetch_options);
-                }
-                result = {status: 'failed', message: 'Failed to reach => ' + endpoint};
+            catch(er_not_accessible){
+                result.message = '' + er_not_accessible;
             }
-            else{
-                result = await fetchResult.json(); // parsing the response
-                if(result.status == 'success'){
-                    result.status = 'ok';
-                }
-                if(result.status !='ok'){
-                    if(result.error){
-                       result.message = result.error;
+            raw_result.code = fetchResult.status;
+            if(fetchResult.status == 200){
+                try{
+                    let http_result = await fetchResult.json();
+                    for(let key in http_result){
+                        raw_result[key] = http_result[key];
                     }
-                    if(result.data){
-                        result.message = result.error;
-                    }
+                } catch(json_parse_error){
+                    http_result.message = 'Invalid json response';
                 }
-                result.server_endpoint = server_endpoint;
             }
-            explicitly_hide_loader(endpoint);
-            clearTimeout(timeoutId);
-            return result;
+            let api_result = format_result(endpoint, timeoutId, api_base_url, raw_result);
+            return api_result;
         }
         catch(er_api){
-            explicitly_hide_loader(endpoint);
-            clearTimeout(timeoutId);
-            let message = 'Request failed => ' + endpoint.substr(1);
-            let res = {status: 'failed', message: message};
-            apiClient.current_component.setState({error_message: message});
-            console.log('Request failed => ' +server_endpoint);
-            return Promise.resolve(res);
+            let api_result = format_result(endpoint, timeoutId, api_base_url, raw_result);
+            return Promise.resolve(api_result);
         }
+    }
+
+    function format_result(endpoint, timeoutId, api_base_url, processed_result){
+        let server_endpoint = api_base_url + endpoint;
+        if(processed_result.status == 'success'){
+            processed_result.status = 'ok';
+        }
+        if(processed_result.status !='ok'){
+            processed_result.status = 'failed';
+            if(!processed_result.message && processed_result.error){
+                processed_result.message = processed_result.error;
+            }
+            if(!processed_result.message && processed_result.data){
+                processed_result.message = processed_result.data;
+            }
+            if(!processed_result.message){
+                processed_result.message = 'Invalid response';
+            }
+            if(processed_result.message == 'No result'){
+
+            }
+            processed_result.message += ' from '+ endpoint.substr(1);
+            apiClient.current_component.set_failure_message(processed_result.message, api_base_url);
+            console.log('\nFailed ' + processed_result.code + ' => ' + processed_result.message, '\n'+server_endpoint);
+        }
+        else{
+            console.log('\OK', server_endpoint,  processed_result.message);
+        }
+        clearTimeout(timeoutId);
+        explicitly_hide_loader(endpoint);
+        return processed_result;
     }
 
     function explicitly_hide_loader(endpoint){
