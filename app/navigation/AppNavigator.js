@@ -68,7 +68,6 @@ export default class AppNavigator extends React.Component {
 
     set_failure_message(message, api_base_url=''){
         this.errors.push(message);
-        console.log('\nError', message);
         if(message.startsWith('No result')){
             let server_error = 'Unable to connect server '+api_base_url;
             if(this.errors.indexOf(server_error) == -1){

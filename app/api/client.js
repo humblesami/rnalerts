@@ -37,19 +37,19 @@ let apiClient = {
                 method: method,
             }
             if(method != 'ping'){
+                fetch_options.headers = {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                };
+                let auth_token = await apiClient.rnStorage.get('auth_token');
+                if(auth_token){
+                    fetch_options.headers['Authorization'] = 'Token ' + auth_token;
+                }
                 if(method.toLowerCase() == 'get'){
                     fetch_options.data = req_data;
                 }
                 else{
                     fetch_options.body = JSON.stringify(req_data);
-                    fetch_options.headers = {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    };
-                    let auth_token = await apiClient.rnStorage.get('auth_token');
-                    if(auth_token){
-                        fetch_options.headers['Authorization'] = 'Token ' + auth_token;
-                    }
                 }
             }
             else{
@@ -89,6 +89,9 @@ let apiClient = {
         let server_endpoint = api_base_url + endpoint;
         if(processed_result.status == 'success'){
             processed_result.status = 'ok';
+            if(processed_result.message == 'No result'){
+                processed_result.message = "Success";
+            }
         }
         if(processed_result.status !='ok'){
             processed_result.status = 'failed';
@@ -100,9 +103,6 @@ let apiClient = {
             }
             if(!processed_result.message){
                 processed_result.message = 'Invalid response';
-            }
-            if(processed_result.message == 'No result'){
-
             }
             processed_result.message += ' from '+ endpoint.substr(1);
             apiClient.current_component.set_failure_message(processed_result.message, api_base_url);
