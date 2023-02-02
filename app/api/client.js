@@ -15,7 +15,7 @@ let apiClient = {
     let active_server_url = 'https://dap.92newshd.tv';
     let fetch_timeout = 10;
 
-    active_server_url = 'http://127.0.0.1:8000';
+    //active_server_url = 'http://127.0.0.1:8000';
     fetch_timeout = 200;
 
     async function fetch_request(endpoint, method, req_data={}) {

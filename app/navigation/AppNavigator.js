@@ -29,7 +29,7 @@ export default class AppNavigator extends React.Component {
         this.state = {
             expoToken: '',
             tokenSent: 0,
-            loading: {},
+            loading: {'/device/register': 1},
             servers_list: [],
             subscriptions: [],
             done_message: '',
@@ -90,14 +90,16 @@ export default class AppNavigator extends React.Component {
                     obj_this.setState({ expoToken: pushToken });
                     obj_this.submit_token(pushToken);
                 }
+                delete this.state.loading['/device/register'];
             }).catch(er6 => {
-                let message = ('Could not registerPushNotificationsAsync-1');
-                obj_this.on_error(er6, message);
+                delete this.state.loading['/device/register'];
+                let message = ('Could not registerPushNotificationsAsync-1 '+ er6);
+                obj_this.set_failure_message(message);
             });
         }
         catch (er7) {
-            let message = ('Could not registerPushNotificationsAsync-2');
-            obj_this.on_error(er7, message);
+            let message = ('Could not registerPushNotificationsAsync-2 '+ er7);
+            obj_this.set_failure_message(message);
         }
 
         obj_this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
