@@ -100,7 +100,6 @@ export default class AppNavigator extends React.Component {
             obj_this.on_error(er7, message);
         }
 
-        this.get_server_list();
         obj_this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
             let category_id = notification.request.content.categoryIdentifier;
             //obj_this.playSound();
@@ -166,17 +165,15 @@ export default class AppNavigator extends React.Component {
             return;
         }
         let obj_this = this;
-        let endpoint = '/expo/submit';
-        let json_data = await apiClient.post_data(endpoint, { obtained_token: obtained_token });
-        if (json_data.status == 'ok') {
-            if (!json_data.channels.length) {
+        let endpoint = '/servers/submit';
+        let resp = await apiClient.post_data(endpoint, { obtained_token: obtained_token });
+        if (resp.status == 'ok') {
+            if (!resp.channels.length) {
                 obj_this.popup('warning_message', 'No active channels found');
             }
-            else {
-                obj_this.setState({ subscriptions: json_data.channels });
-            }
+            obj_this.setState({ subscriptions: resp.channels, servers_list: resp.servers_list});
             apiClient.rnStorage.save('push_token', obtained_token).then(() => { });
-            apiClient.rnStorage.save('auth_token', json_data.auth_token).then(() => { });
+            apiClient.rnStorage.save('auth_token', resp.auth_token).then(() => { });
         }
         else{
             obj_this.popup('warning_message', 'No active channels found');
