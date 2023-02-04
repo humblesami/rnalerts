@@ -1,13 +1,11 @@
 import React from 'react';
 import * as Notifications from 'expo-notifications';
 import SoundPlayer from 'react-native-sound-player';
-import AppButton from '../components/Button';
+import { View, Text, StyleSheet, Clipboard, ScrollView, ActivityIndicator } from 'react-native';
+
+import "../ignoreWarnings";
 import apiClient from '../api/client';
-import { View, Text, StyleSheet, Clipboard, LogBox, ScrollView, ActivityIndicator } from 'react-native';
-
-
-LogBox.ignoreLogs(['Warning: ...']);
-LogBox.ignoreAllLogs();
+import AppButton from '../components/Button';
 
 
 Notifications.setNotificationHandler({
@@ -21,8 +19,8 @@ Notifications.setNotificationHandler({
 export default class AppNavigator extends React.Component {
     errors = [];
     last_rendered = '';
-    responseListener = {};
-    notificationListener = {};
+    resListener = {};
+    pushListener = {};
     baseUrl = 'https://dap.92newshd.tv';
     constructor() {
         super();
@@ -30,7 +28,11 @@ export default class AppNavigator extends React.Component {
             expoToken: '',
             tokenSent: 0,
             loading: {'/device/register': 1},
-            servers_list: [],
+            servers_list: [
+                {name: '92news', check_path: 'https://92newshd.tv/', status: 200},
+                {name: 'Test92news', check_path: 'https://test.92newshd.tv/', status: 512},
+                {name: 'Roznama', check_path: 'https://www.roznama.com/', status: 200},
+            ],
             subscriptions: [],
             done_message: '',
             error_message : '',
@@ -42,6 +44,7 @@ export default class AppNavigator extends React.Component {
 
     run_bg_process() {
     }
+
     copyToken() {
         let obj_this = this;
         Clipboard.setString(obj_this.state.expoToken);
@@ -49,14 +52,12 @@ export default class AppNavigator extends React.Component {
     };
 
     st_upd = 0;
-
     setState(values) {
         let obj_this = this;
         if (!this.last_rendered) {
             for (let key in values) {
                 this.state[key] = values[key];
             }
-            return;
         }
         obj_this.st_upd += 1;
         super.setState(values);
@@ -67,53 +68,34 @@ export default class AppNavigator extends React.Component {
     }
 
     set_failure_message(message, api_base_url=''){
-        this.errors.push(message);
         if(message.startsWith('No result')){
-            let server_error = 'Unable to connect server '+api_base_url;
-            if(this.errors.indexOf(server_error) == -1){
-                this.errors.splice(0, 0, server_error);
-            }
-        }
+            message = 'Unable to connect server ' + api_base_url }
+        if(this.errors.indexOf(message) == -1) { this.errors.push(message);}
         this.state.error_message =  this.errors.join('\n');
+        this.setState({});
     }
 
-    componentDidMount() {
+    async componentDidMount() {
         let obj_this = this;
         apiClient.current_component = this;
         try {
-            this.registerForPushNotificationsAsync().then(pushToken => {
-                if (!pushToken) {
-                    let message = 'Got no token';
-                    obj_this.setState({ expoToken: message });
-                }
-                else {
-                    obj_this.setState({ expoToken: pushToken });
-                    obj_this.submit_token(pushToken);
-                }
-                delete this.state.loading['/device/register'];
-            }).catch(er6 => {
-                delete this.state.loading['/device/register'];
-                let message = ('Could not registerPushNotificationsAsync-1 '+ er6);
-                obj_this.set_failure_message(message);
-            });
+            let pushToken = await this.registerForPushNotificationsAsync();
+            delete this.state.loading['/device/register'];
+            if (!pushToken) { pushToken = 'Got no token';}
+            else { obj_this.submit_token(pushToken) }
+            obj_this.setState({ expoToken: pushToken });
         }
         catch (er7) {
-            let message = ('Could not registerPushNotificationsAsync-2 '+ er7);
+            delete this.state.loading['/device/register'];
+            let message = ('Could not registerPushNotificationsAsync '+ er7);
             obj_this.set_failure_message(message);
         }
 
-        obj_this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
-            let category_id = notification.request.content.categoryIdentifier;
-            //obj_this.playSound();
-        });
-        obj_this.responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-            let category_id = response.notification.request.content.categoryIdentifier;
-        });
-
-        // Unsubscribe from events
+        obj_this.pushListener = Notifications.addNotificationReceivedListener(notification => notification.request.content.categoryIdentifier);
+        obj_this.resListener = Notifications.addNotificationResponseReceivedListener(response => response.notification.request.content);
         return () => {
-            Notifications.removeNotificationSubscription(obj_this.notificationListener);
-            Notifications.removeNotificationSubscription(obj_this.responseListener);
+            Notifications.removeNotificationSubscription(obj_this.pushListener);
+            Notifications.removeNotificationSubscription(obj_this.resListener);
         };
     }
 
@@ -153,9 +135,7 @@ export default class AppNavigator extends React.Component {
         let resp = await apiClient.post_data(endpoint, data);
         if (resp.status == 'ok') {
             let temp1 = 'subscribed';
-            if(!item.active){
-                temp1 = 'unsubscribed';
-            }
+            if(!item.active){ temp1 = 'unsubscribed'; }
             obj_this.popup('done_message', 'Successfully '+temp1);
         }
     }
@@ -177,9 +157,7 @@ export default class AppNavigator extends React.Component {
             apiClient.rnStorage.save('push_token', obtained_token).then(() => { });
             apiClient.rnStorage.save('auth_token', resp.auth_token).then(() => { });
         }
-        else{
-            obj_this.popup('warning_message', 'No active channels found');
-        }
+        else{ obj_this.popup('warning_message', 'No active channels found'); }
     }
 
     async registerForPushNotificationsAsync() {
@@ -207,59 +185,42 @@ export default class AppNavigator extends React.Component {
                 });
             }
         }
-        catch (ex) {
-            console.log('\nError in device ', er)
-        }
-        if (!token) {
-            console.log('\nNo expo token for device');
-        }
+        catch (ex) { console.log('\nError in device ', ex) }
+        if (!token) { this.set_failure_message('Device could not be registred, check your internet'); }
         return token;
     }
 
     async check_servers() {
         let obj_this = this;
-        let res_list = obj_this.state.servers_list;
         let endpoint = '/servers/check-only';
+        obj_this.state.loading[endpoint] = 1;
+        obj_this.setState({});
+        let res_list = obj_this.state.servers_list;
         let json = await apiClient.get_data(endpoint);
-        console.log('\njson', json);
-        if(!json){
-            obj_this.check_servers_client();
-            return;
-        }
-        if (json.status != 'ok') {
-            obj_this.check_servers_client();
+        if(!(json && json.status == 'ok')){
+            await obj_this.check_servers_client();
+            delete obj_this.state.loading[endpoint];
+            obj_this.setState({});
             return;
         }
         else {
-            let uc = 0;
-            for (let item of json.data.responses) {
-                let matched = res_list.find(x => x.check_path == item.server.check_path && item.status != x.status);
-                if (matched) {
-                    matched.status = item.status;
-                    uc += 1;
-                }
-            }
-            if(uc)
-            {
-                this.setState({ servers_list: res_list });
-            }
+            json.data.responses.map(item=>{ res_list.find(x => x.check_path == item.server.check_path).status = item.status});
+            this.setState({ servers_list: res_list });
         }
     }
 
-    check_servers_client() {
-        console.log('\nBefore check', Date());
-        let obj_this = this;
-        let res_list = obj_this.state.servers_list;
-        console.log('\nList', res_list);
-        let i = 0;
-        for (let item of res_list) {
-            fetch(item.check_path).then((resp) => {
-                res_list.find(x => x.check_path == resp.url).status = resp.status;
-                 i += 1;
-                if(i == res_list.length){
-                    obj_this.setState({ servers_list: res_list });
-                }
-            });
+    async check_servers_client() {
+        let res_list = this.state.servers_list;
+        const requests = res_list.map((item) => fetch(item.check_path));
+        try{
+            const responses = await Promise.all(requests);
+            responses.map(resp=>res_list.find(x => x.check_path == resp.url).status = resp.status);
+            console.log('Checked from client');
+        }
+        catch(ex3){
+            let message = 'Error in checking server from client';
+            this.set_failure_message(message);
+            console.log(message, ex3);
         }
     }
 
@@ -275,7 +236,6 @@ export default class AppNavigator extends React.Component {
                 );
             }
         }
-
 
         function server_status_list(items_list) {
             function get_item_style(status, item_url) {
@@ -323,24 +283,21 @@ export default class AppNavigator extends React.Component {
                         <Text>{name}</Text>
                     </View>
                     <View>
-                        {
-                            items_list.map(function (item, j) {
-                                let title = "Subscribe => " + item.channel__name + ' Status';
-                                if (item.active) {
-                                    title = "Unsubscribe => " + item.channel__name + ' Status';
-                                }
-                                return (
-                                    <View key={j}>
-                                        <AppButton
-                                            title={title}
-                                            onPress={() => {
-                                                obj_this.toggleNotification(item.channel__name);
-                                            }}
-                                        />
-                                    </View>
-                                )
-                            })
-                        }
+                    {
+                        items_list.map(function (item, j) {
+                            let title = "Subscribe => " + item.channel__name + ' Status';
+                            if (item.active) {
+                                title = "Unsubscribe => " + item.channel__name + ' Status';
+                            }
+                            return (
+                                <View key={j}>
+                                    <AppButton title={title} onPress={() => {
+                                        obj_this.toggleNotification(item.channel__name);
+                                    }}/>
+                                </View>
+                            )
+                        })
+                    }
                     </View>
                 </View>
             );
