@@ -15,7 +15,6 @@ Notifications.setNotificationHandler({
     }),
 });
 
-
 export default class AppNavigator extends AbstractScreen {
     constructor() {
         super();
@@ -55,7 +54,7 @@ export default class AppNavigator extends AbstractScreen {
             }
         }).catch(er8=>{
             obj_this.removeLoader('/device/register');
-            obj_this.setState({ expoToken: 'Error in getting token '+er8 });
+            obj_this.setState({ expoToken: '' + er8 });
         });
 
         obj_this.pushListener = Notifications.addNotificationReceivedListener(notification => notification.request.content.categoryIdentifier);
