@@ -11,7 +11,7 @@ import Screen from "../components/Screen";
 import CategoryPickerItem from '../components/Picker/CategoryPickerItem';
 import FormImagePicker from "../components/forms/FormImagePicker";
 import { ScrollView } from "react-native-gesture-handler";
-import listingsApi from '../api/listings';
+import listingsApi from '../services/listings';
 import useLocation from "../hooks/useLocation";
 import UploadScreen from "./UploadScreen";
 
