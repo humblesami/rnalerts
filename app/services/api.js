@@ -4,7 +4,7 @@ export default class ServerApi {
     constructor(caller){
         this.caller = caller;
         this.active_server_url = 'https://dap.92newshd.tv';
-        this.active_server_url = 'http://127.0.0.1:8000';
+        //this.active_server_url = 'http://127.0.0.1:8000';
         this.fetch_timeout = 1000 * 1000;
         this.api_server_url = this.active_server_url;
     }
