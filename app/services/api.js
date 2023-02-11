@@ -4,10 +4,11 @@ export default class ServerApi {
     constructor(caller){
         this.caller = caller;
         this.active_server_url = 'https://dap.92newshd.tv';
-        //this.active_server_url = 'http://127.0.0.1:8000';
-        this.fetch_timeout = 10 * 1000;
+        this.active_server_url = 'http://127.0.0.1:8000';
+        this.fetch_timeout = 1000 * 1000;
         this.api_server_url = this.active_server_url;
     }
+
     on_request_init(endpoint){
         if(this.caller){
             return;
@@ -51,12 +52,12 @@ export default class ServerApi {
 
         let api_base_url = this.api_server_url;
         let server_endpoint = api_base_url + endpoint;
+
         let raw_result = {
             status: 'failed', code: 512, message: 'No result',
             server_endpoint: server_endpoint, endpoint: endpoint.substr(1)
         }
         try{
-
             this.on_request_init(endpoint);
             let fetch_options = {
                 method: method,
