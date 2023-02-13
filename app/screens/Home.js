@@ -114,9 +114,6 @@ export default class HomeScreen extends AbstractScreen {
         let obj_this = this;
         let endpoint = '/servers/submit';
         let resp = await obj_this.apiClient.post_data(endpoint, { obtained_token: obtained_token });
-        for(let item of resp.servers_list){
-            console.log(11111, item);
-        }
 
         if (resp.status == 'ok') {
             if (!resp.channels.length) {

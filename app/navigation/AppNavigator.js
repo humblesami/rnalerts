@@ -10,12 +10,18 @@ const Tab = createBottomTabNavigator();
 
 
 export default function AppWithBottomTabs() {
-    function get_option(label, icon){
-        return {
+    function get_option(label, icon, tbb=0){
+        let res_options = {
             tabBarLabel: label,
             tabBarIcon: ({ color, size }) => (<MaterialCommunityIcons name={icon} color={color} size={size} />)
         }
+        if(tbb){
+            res_options.tabBarBadge = tbb;
+        }
+        return res_options;
     }
+
+
     let option1 = get_option('Home', 'home');
     let option2 = get_option('About', 'bell');
     return (
