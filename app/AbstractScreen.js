@@ -12,6 +12,7 @@ export default class AbstractScreen extends React.Component {
         this.error_list = [];
         this.last_rendered = '';
         this.apiClient = new ServerApi(this);
+        this.max_request_wait = Math.ceil(this.apiClient.fetch_timeout * 1.5);
         this.state = {
             loading: {},
             done_message: '',
@@ -19,6 +20,43 @@ export default class AbstractScreen extends React.Component {
             warning_message: '',
         };
     }
+
+
+    on_api_error(message, api_base_url){
+        let component = this;
+        if(message.startsWith('No result')){
+            message = 'Unable to connect server ' + api_base_url
+        }
+        if(component.error_list.indexOf(message) == -1) { component.error_list.push(message);}
+        //console.log(33, component.error_list);
+        component.state.error_message =  component.error_list.join('\n');
+    }
+
+    hideLoader(activity_id){
+        delete this.state.loading[activity_id];
+        if(!Object.keys(this.state.loading).length){
+            this.setState({});
+        }
+    }
+
+    showLoader(activity_id){
+        let obj_this = this;
+        this.state.loading[activity_id] = 1;
+        if(Object.keys(this.state.loading).length == 1){
+            this.setState({});
+        }
+        setTimeout(()=>{
+            if(obj_this.state.loading[activity_id]){
+                alert('Removed loader by time out');
+                obj_this.hideLoader(activity_id);
+            }
+        }, obj_this.max_request_wait);
+    }
+
+    on_warning(txt) {
+        this.setState({ warning_message: txt });
+    }
+
     st_upd = 0;
     setState(values) {
         let obj_this = this;
@@ -29,13 +67,7 @@ export default class AbstractScreen extends React.Component {
         }
         obj_this.st_upd += 1;
         super.setState(values);
-    }
-    removeLoader(loader_api){
-        delete this.state.loading[loader_api];
-    }
-
-    on_warning(txt) {
-        this.setState({ warning_message: txt });
+        //console.log(11, this.state.warning_message, 12, this.state.error_message, 13, this.state.done_message);
     }
 
     popup(state_attribute, message){
@@ -52,10 +84,9 @@ export default class AbstractScreen extends React.Component {
         console.log('Par');
     }
 
-    render_parent(child_view) {
+    render_in_parent(child_view) {
         let obj_this = this;
         obj_this.last_rendered = new Date();
-        console.log('Getting all');
         function show_errors() {
             if (obj_this.state.error_message) {
                 return (

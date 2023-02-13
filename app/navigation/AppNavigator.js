@@ -10,10 +10,19 @@ const Tab = createBottomTabNavigator();
 
 
 export default function AppWithBottomTabs() {
+    function get_option(label, icon){
+        return {
+            tabBarLabel: label,
+            tabBarIcon: ({ color, size }) => (<MaterialCommunityIcons name={icon} color={color} size={size} />)
+        }
+    }
+    let option1 = get_option('Home', 'home');
+    let option2 = get_option('About', 'bell');
     return (
         <Tab.Navigator initialRouteName="Feed" screenOptions={{ tabBarActiveTintColor: '#e91e63', }}>
-            <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Tab1', tabBarIcon: ({ color, size }) => (<MaterialCommunityIcons name="home" color={color} size={size} />), }} />
-            <Tab.Screen name="About" component={AboutScreen} options={{ tabBarLabel: 'Tab2', tabBarIcon: ({ color, size }) => (<MaterialCommunityIcons name="bell" color={color} size={size} />), }} />
+            <Tab.Screen name="Home" component={HomeScreen} options={option1} />
+            <Tab.Screen name="About" component={AboutScreen} options={{option2}} />
         </Tab.Navigator>
     );
 }
+

@@ -24,7 +24,7 @@ export default class HomeScreen extends AbstractScreen {
         let home_state = {
             tokenSent: 0,
             expoToken: '',
-            loading: {'/device/register': 1},
+            loading: {},
             servers_list: [
                 {name: '92news', check_path: 'https://92newshd.tv/', status: 200},
                 {name: 'Test92news', check_path: 'https://test.92newshd.tv/', status: 512},
@@ -41,15 +41,9 @@ export default class HomeScreen extends AbstractScreen {
     async componentDidMount() {
         console.log('Home Mount');
         let obj_this = this;
-        setTimeout(()=>{
-            obj_this.removeLoader('/device/register');
-            if(!obj_this.state.expoToken)
-            {
-                obj_this.setState({ expoToken: 'Get token timed out' });
-            }
-        }, 6000);
+        obj_this.showLoader('/device/register');
         this.registerForPushNotificationsAsync().then(pushToken=>{
-            obj_this.removeLoader('/device/register');
+            obj_this.hideLoader('/device/register');
             if (!pushToken) {
                 obj_this.setState({ expoToken: 'Got no token' });
             }
@@ -58,7 +52,7 @@ export default class HomeScreen extends AbstractScreen {
                 obj_this.submit_token(pushToken);
             }
         }).catch(er8=>{
-            obj_this.removeLoader('/device/register');
+            obj_this.hideLoader('/device/register');
             obj_this.setState({ expoToken: '' + er8 });
         });
 
@@ -96,13 +90,13 @@ export default class HomeScreen extends AbstractScreen {
 
     }
 
-    async toggleNotification(alert_id) {
+    async toggleNotification(notification_source) {
         let obj_this = this;
-        let item = obj_this.state.subscriptions.find((x) => x.channel__name == alert_id);
+        let item = obj_this.state.subscriptions.find((x) => x.channel__name == notification_source);
         item.active = !item.active;
         obj_this.setState({});
         let endpoint = '/expo/toggle';
-        let data = {channel: alert_id, push_token: obj_this.state.expoToken};
+        let data = {channel: notification_source, push_token: obj_this.state.expoToken};
         let resp = await obj_this.apiClient.post_data(endpoint, data);
         if (resp.status == 'ok') {
             let temp1 = 'subscribed';
@@ -120,6 +114,10 @@ export default class HomeScreen extends AbstractScreen {
         let obj_this = this;
         let endpoint = '/servers/submit';
         let resp = await obj_this.apiClient.post_data(endpoint, { obtained_token: obtained_token });
+        for(let item of resp.servers_list){
+            console.log(11111, item);
+        }
+
         if (resp.status == 'ok') {
             if (!resp.channels.length) {
                 obj_this.popup('warning_message', 'No active channels found');
@@ -238,7 +236,7 @@ export default class HomeScreen extends AbstractScreen {
             )
         }
 
-        function render_alerts(items_list, name) {
+        function render_notitifcation_sources(items_list, name) {
             return (
                 <View>
                     <View>
@@ -270,9 +268,9 @@ export default class HomeScreen extends AbstractScreen {
                 <AppButton onPress={() => { obj_this.check_servers() }} title="Check Servers Now" />
                 <Text selectable={true}>Token == {obj_this.state.expoToken || 'Obtaining token'}</Text>
                 <AppButton onPress={() => { obj_this.copyToken() }} title={obj_this.state.copyBtnLabel} />
-                {render_alerts(obj_this.state.subscriptions, 'My Alerts')}
+                {render_notitifcation_sources(obj_this.state.subscriptions, 'Servers')}
             </View>
         );
-        return obj_this.render_parent(child_view);
+        return obj_this.render_in_parent(child_view);
     }
 }

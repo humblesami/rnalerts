@@ -1,54 +1,19 @@
 import rnStorage from './rnStorage';
 
 export default class ServerApi {
-    constructor(caller){
-        this.caller = caller;
+    constructor(component, time_limit=8){
         this.active_server_url = 'https://dap.92newshd.tv';
         //this.active_server_url = 'http://127.0.0.1:8000';
-        this.fetch_timeout = 1000 * 1000;
+        this.fetch_timeout = time_limit * 1000;
         this.api_server_url = this.active_server_url;
+        this.composer = component;
     }
 
-    on_request_init(endpoint){
-        if(this.caller){
-            return;
-        }
-        let component = this.caller;
-        let loading_activities = component.state.loading;
-        loading_activities[endpoint] = 1;
-        component.setState({loading : loading_activities});
-    }
-    on_request_completed(endpoint){
-        if(this.caller){
-            return;
-        }
-        let component = this.caller;
-        let last_rendered = component.last_rendered;
-        delete component.state.loading[endpoint];
-        let loading_trace = component.state.loading;
-        setTimeout(()=>{
-            if(component.last_rendered == last_rendered){
-                component.setState({loading: loading_trace});
-            }
-        }, 500);
-    }
-    on_api_error(message, server_endpoint, api_base_url){
-        if(this.caller){
-            return;
-        }
-        let component = this.caller;
-        if(message.startsWith('No result')){
-            message = 'Unable to connect server ' + api_base_url
-        }
-        if(component.error_list.indexOf(message) == -1) { component.error_list.push(message);}
-        component.state.error_message =  component.error_list.join('\n');
-        component.setState({});
-    }
-
-    async fetch_request(endpoint, method, req_data={}) {
+    async fetch_request(endpoint, method, req_data={}, time_limit=0) {
         let obj_this = this;
         const abort_controller = new AbortController();
-        const timeoutId = setTimeout(() => abort_controller.abort(), obj_this.fetch_timeout);
+        let max_request_wait = time_limit || obj_this.fetch_timeout;
+        const timeoutId = setTimeout(() => abort_controller.abort(), max_request_wait);
 
         let api_base_url = this.api_server_url;
         let server_endpoint = api_base_url + endpoint;
@@ -58,7 +23,7 @@ export default class ServerApi {
             server_endpoint: server_endpoint, endpoint: endpoint.substr(1)
         }
         try{
-            this.on_request_init(endpoint);
+            this.composer.showLoader(endpoint);
             let fetch_options = {
                 method: method,
             }
@@ -121,8 +86,15 @@ export default class ServerApi {
             return api_result;
         }
         catch(er_api){
-            let api_result = obj_this.format_result(endpoint, timeoutId, api_base_url, raw_result);
-            return Promise.resolve(api_result);
+            try{
+                let api_result = obj_this.format_result(endpoint, timeoutId, api_base_url, raw_result);
+                return Promise.resolve(api_result);
+            }
+            catch(gen_err){
+                console.log('Error => ', gen_err);
+                alert('Error in api catch');
+                return Promise.resolve({status: 'error', message: '' + gen_err, error: '' + gen_err});
+            }
         }
     }
 
@@ -146,14 +118,14 @@ export default class ServerApi {
                 processed_result.message = 'Invalid response';
             }
             processed_result.message += ' from '+ endpoint.substr(1);
-            this.on_api_error(processed_result.message, server_endpoint, api_base_url);
+            this.composer.on_api_error(processed_result.message, api_base_url);
             console.log('\nFailed ' + processed_result.code + ' => ' + processed_result.message, '\n'+server_endpoint);
         }
         else{
             console.log('\OK', server_endpoint,  processed_result.message);
         }
         clearTimeout(timeoutId);
-        this.on_request_completed(endpoint);
+        this.composer.hideLoader(endpoint);
         return processed_result;
     }
 
@@ -161,16 +133,17 @@ export default class ServerApi {
         this.api_server_url = server_url;
     }
 
-    async get_data(endpoint, req_data={}){
-        let res = await this.fetch_request(endpoint, 'GET', req_data);
-        return res;
-    }
-    async function(url){
-        let res = await this.fetch_request(url, 'ping', {});
+    async ping(url, max_time=0){
+        let res = await this.fetch_request(url, 'ping', {}, max_time);
         return res;
     }
 
-    async post_data(endpoint, item_to_save={}){
+    async get_data(endpoint, req_data={}, max_time=0){
+        let res = await this.fetch_request(endpoint, 'GET', req_data, max_time);
+        return res;
+    }
+
+    async post_data(endpoint, item_to_save={}, max_time=0){
         try{
             let req_data = item_to_save;
             if(item_to_save.files){
@@ -186,7 +159,7 @@ export default class ServerApi {
                     });
                 });
             }
-            let res = await this.fetch_request(endpoint, 'POST', req_data);
+            let res = await this.fetch_request(endpoint, 'POST', req_data, max_time);
             return res;
         }
         catch(post_er){
