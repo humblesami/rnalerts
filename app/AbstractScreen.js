@@ -22,14 +22,31 @@ export default class AbstractScreen extends React.Component {
     }
 
 
-    on_api_error(message, api_base_url){
-        let component = this;
+    on_api_error(message, activity_id, api_base_url){
+        let screen_object = this;
         if(message.startsWith('No result')){
             message = 'Unable to connect server ' + api_base_url
         }
-        if(component.error_list.indexOf(message) == -1) { component.error_list.push(message);}
-        //console.log(33, component.error_list);
-        component.state.error_message =  component.error_list.join('\n');
+        let error_activity = {message: message, activity_id: activity_id};
+        console.log('\nError detail => ', error_activity);
+        if(!screen_object.error_list.find(x=> x.message == message || x.activity_id == activity_id)) {
+            screen_object.error_list.push(error_activity);
+            screen_object.state.error_message =  screen_object.error_list.map(item=>item.message).join('\n');
+        }
+    }
+
+    on_success(activity_id){
+        let index = -1;
+        let screen_object = this;
+        let i = 0;
+        for(let item of screen_object.error_list){
+            if(item.activity_id == activity_id){
+                screen_object.error_list.splice(i, 1);
+                screen_object.state.error_message =  screen_object.error_list.map(item=>item.message).join('\n');
+                break;
+            }
+            i += 1;
+        }
     }
 
     hideLoader(activity_id){
@@ -47,7 +64,9 @@ export default class AbstractScreen extends React.Component {
         }
         setTimeout(()=>{
             if(obj_this.state.loading[activity_id]){
-                alert('Removed loader by time out');
+                let message = 'Removed loader by time out after '+obj_this.max_request_wait;
+                message += ' while service had timed out '+(obj_this.max_request_wait - obj_this.apiClient.fetch_timeout)+ 'ms ago';
+                alert(message);
                 obj_this.hideLoader(activity_id);
             }
         }, obj_this.max_request_wait);

@@ -23,6 +23,7 @@ export default class ServerApi {
             server_endpoint: server_endpoint, endpoint: endpoint.substr(1)
         }
         try{
+            //console.log('\nRequesting => '+endpoint);
             this.composer.showLoader(endpoint);
             let fetch_options = {
                 method: method,
@@ -39,7 +40,10 @@ export default class ServerApi {
                 };
                 let auth_token = await rnStorage.get('auth_token');
                 if(auth_token){
-                    fetch_options.headers['Authorization'] = 'Token ' + auth_token;
+                    fetch_options['headers'] = {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Token ' + auth_token
+                    }
                 }
                 if(method.toLowerCase() == 'get'){
                     fetch_options.data = req_data;
@@ -52,20 +56,14 @@ export default class ServerApi {
             let fetchResult = {status: 512};
             try{
                 fetchResult = await fetch(server_endpoint, fetch_options);
-            }
-            catch(er_not_accessible){
-                console.log('\nError in access '+er_not_accessible);
-                result.message = '' + er_not_accessible;
-            }
-            raw_result.code = fetchResult.status;
-            try{
+                raw_result.code = fetchResult.status;
                 let http_result = await fetchResult.json();
                 if(!http_result.status){
                     http_result.status = 'failed';
                     if(http_result.detail)
                     {
                         http_result.message = http_result.detail;
-                        console.log(fetch_options);
+                        console.log('\nFailed with error code', fetch_options, endpoint);
                     }
                     else{
                         if(!http_result.message)
@@ -77,21 +75,34 @@ export default class ServerApi {
                 for(let key in http_result){
                     raw_result[key] = http_result[key];
                 }
-            } catch(json_parse_error){
-                console.log('\n Not a json');
-                http_result.message = 'Invalid json response';
             }
+            catch(er_not_accessible){
+                er_not_accessible = '' + er_not_accessible;
+                if(er_not_accessible.indexOf('AbortError') > -1){
+                    raw_result.message = ('Timed out after '+obj_this.fetch_timeout);
+                    raw_result.code = 513;
 
+                }
+                else{
+                    console.log('\nError in reaching '+er_not_accessible);
+                    raw_result.message = '' + er_not_accessible;
+                }
+            }
+            //console.log('\All gone well => '+endpoint);
             let api_result = obj_this.format_result(endpoint, timeoutId, api_base_url, raw_result);
+            if(api_result.status == 'ok' || api_result.status == 'success'){
+                this.composer.on_success(endpoint);
+            }
             return api_result;
         }
         catch(er_api){
             try{
+                console.log('\nReached top catch => '+er_api);
                 let api_result = obj_this.format_result(endpoint, timeoutId, api_base_url, raw_result);
                 return Promise.resolve(api_result);
             }
             catch(gen_err){
-                console.log('Error => ', gen_err);
+                console.log('\nError in catch => ', gen_err);
                 alert('Error in api catch');
                 return Promise.resolve({status: 'error', message: '' + gen_err, error: '' + gen_err});
             }
@@ -106,7 +117,7 @@ export default class ServerApi {
                 processed_result.message = "Success";
             }
         }
-        if(processed_result.status !='ok'){
+        if(processed_result.status != 'ok'){
             processed_result.status = 'failed';
             if(!processed_result.message && processed_result.error){
                 processed_result.message = processed_result.error;
@@ -118,11 +129,11 @@ export default class ServerApi {
                 processed_result.message = 'Invalid response';
             }
             processed_result.message += ' from '+ endpoint.substr(1);
-            this.composer.on_api_error(processed_result.message, api_base_url);
-            console.log('\nFailed ' + processed_result.code + ' => ' + processed_result.message, '\n'+server_endpoint);
+            this.composer.on_api_error(processed_result.message, endpoint, api_base_url);
+            console.log('\nGot error ' + processed_result.message, ' from => '+server_endpoint);
         }
         else{
-            console.log('\OK', server_endpoint,  processed_result.message);
+            console.log('\OK from => ', server_endpoint,  processed_result.message);
         }
         clearTimeout(timeoutId);
         this.composer.hideLoader(endpoint);
