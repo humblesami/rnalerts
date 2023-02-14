@@ -9,7 +9,7 @@ export default class ServerApi {
         this.composer = component;
     }
 
-    async fetch_request(endpoint, method, req_data={}, time_limit=0) {
+    fetch_request(endpoint, method, req_data={}, time_limit=0) {
         let obj_this = this;
         let api_base_url = this.api_server_url;
         let server_endpoint = api_base_url + endpoint;
@@ -17,88 +17,102 @@ export default class ServerApi {
             status: 'failed', code: 512, message: 'No result',
             server_endpoint: server_endpoint, endpoint: endpoint.substr(1)
         }
-        let api_result = raw_result;
         const abort_controller = new AbortController();
         let max_request_wait = (time_limit ? time_limit : obj_this.fetch_timeout) * 1000;
         const timeoutId = setTimeout(() => abort_controller.abort(), max_request_wait);
 
-        try{
-            this.composer.showLoader(endpoint, max_request_wait);
-            method = method.toLowerCase()
-            let fetch_options = {method: method}
+        this.composer.showLoader(endpoint, max_request_wait);
+        method = method.toLowerCase()
+        let fetch_options = {method: method}
 
-            if(method == 'ping'){
-                server_endpoint = endpoint;
-                fetch_options.method = 'get';
+        if(method == 'ping'){
+            server_endpoint = endpoint;
+            fetch_options.method = 'get';
+        }
+        else{
+            fetch_options.headers = {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            };
+            if(method == 'get'){
+                fetch_options.data = req_data;
             }
             else{
-                fetch_options.headers = {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                };
-                let auth_token = await rnStorage.get('auth_token');
-                if(auth_token){
-                    fetch_options['headers'] = {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Token ' + auth_token
-                    }
-                }
-                if(method == 'get'){
-                    fetch_options.data = req_data;
+                fetch_options.body = JSON.stringify(req_data);
+            }
+        }
+        fetch_options.signal = abort_controller.signal;
+
+        return rnStorage.get('auth_token').then(auth_token=> {
+            if(auth_token){
+                fetch_options['headers']['Authorization'] = 'Token ' + auth_token;
+            }
+            return fetch(server_endpoint, fetch_options)
+        }).then(api_response=>{
+            if(!api_response.status){
+                if(api_response.detail)
+                {
+                    raw_result.message = 'Failed becaused => ' + api_response.detail;
                 }
                 else{
-                    fetch_options.body = JSON.stringify(req_data);
-                }
-            }
-            fetch_options.signal = abort_controller.signal;
-            try{
-                let fetchResult = await fetch(server_endpoint, fetch_options);
-                raw_result.code = fetchResult.status;
-                fetchResult = await fetchResult.json();
-                if(!fetchResult.status){
-                    fetchResult.status = 'failed';
-                    if(fetchResult.detail)
+                    if(!api_response.message)
                     {
-                        fetchResult.message = 'Failed becaused => ' + fetchResult.detail;
-                    }
-                    else{
-                        if(!fetchResult.message)
-                        {
-                            fetchResult.message = 'Invalid access '+raw_result.code;
-                        }
+                        raw_result.message = 'Invalid access ';
                     }
                 }
-                for(let key in fetchResult){
-                    raw_result[key] = fetchResult[key];
-                }
+                return raw_result;
             }
-            catch(er_not_accessible){
-                er_not_accessible = '' + er_not_accessible;
-                if(er_not_accessible.indexOf('AbortError') > -1){
-                    raw_result.message = ('Timed out after '+ (obj_this.fetch_timeout)+ ' seconds');
-                    raw_result.code = 513;
-                }
-                else{
-                    raw_result.message = 'Error in fetch => ' + er_not_accessible;
-                }
-            }
-            api_result = obj_this.format_result(endpoint, raw_result);
-            if(api_result.status == 'ok' || api_result.status == 'success'){
-                this.composer.on_api_success(endpoint);
-                console.log(api_result.message);
+            if(api_response.status == 200){
+                return api_response.json().then(json_result=> json_result);
             }
             else{
-                this.composer.on_api_error(api_result.message, endpoint);
-                console.log(api_result.message);
+                return {status: 'failed', message: 'Error thrown '+api_response.status+' by api'}
             }
-        }
-        catch(er_api){
-            alert('Error in api catching error');
-            api_result = {status: 'error', message: '' + er_api, error: '' + er_api};
-            this.composer.on_api_error(endpoint);
-        }
-        clearTimeout(timeoutId);
-        return api_result;
+        }).then(api_result=>{
+            for(let key in api_result){
+                raw_result[key] = api_result[key];
+            }
+            let processed_result = obj_this.format_result(endpoint, raw_result);
+            if(processed_result.status == 'ok' || processed_result.status == 'success'){
+                this.composer.on_api_success(endpoint);
+            }
+            else{
+                this.composer.on_api_error(endpoint, processed_result.message);
+            }
+            return processed_result;
+        }).catch(er_not_accessible => {
+            er_not_accessible = '' + er_not_accessible;
+            raw_result.status = 'failed';
+            if(er_not_accessible.indexOf('JSON Parse error')){
+                raw_result.message = ('Api response is not a valid json');
+                if(!raw_result.code || raw_result.code == 512)
+                {
+                    raw_result.code = 500;
+                }
+            }
+            else if(er_not_accessible.indexOf('Network request failed') > -1)
+            {
+                raw_result.message = 'Network request failed to reach';
+            }
+            else if(er_not_accessible.indexOf('AbortError') > -1){
+                raw_result.message = ('Timed out after '+ (obj_this.fetch_timeout)+ ' seconds');
+                raw_result.code = 513;
+            }
+            else{
+                raw_result.message = 'Error in fetch => ' + er_not_accessible;
+            }
+            this.composer.on_api_error(endpoint, raw_result.message);
+            return raw_result;
+        }).catch(on_error=>{
+            raw_result.message = 'Error 1 in catch => ' +on_error
+            this.composer.on_api_error(endpoint, raw_result.message);
+            return {status: 'failed', message: raw_result.message};
+        }).catch(er_catch=>{
+            raw_result.message = 'Error 2 in catch => ' +er_catch
+            return {status: 'failed', message: raw_result.message};
+        }).finally(x => {
+            clearTimeout(timeoutId);
+        });
     }
 
     format_result(endpoint, processed_result){
@@ -132,13 +146,11 @@ export default class ServerApi {
     }
 
     async ping(url, max_time=0){
-        let res = await this.fetch_request(url, 'ping', {}, max_time);
-        return res;
+        return this.fetch_request(url, 'ping', {}, max_time);
     }
 
     async get_data(endpoint, req_data={}, max_time=0){
-        let res = await this.fetch_request(endpoint, 'GET', req_data, max_time);
-        return res;
+        return this.fetch_request(endpoint, 'GET', req_data, max_time);
     }
 
     async post_data(endpoint, item_to_save={}, max_time=0){
@@ -156,8 +168,7 @@ export default class ServerApi {
                     });
                 });
             }
-            let res = await this.fetch_request(endpoint, 'POST', req_data, max_time);
-            return res;
+            return this.fetch_request(endpoint, 'POST', req_data, max_time);
         }
         catch(post_er){
             return new Promise(function (resolve, reject) {

@@ -21,21 +21,22 @@ export default class AbstractScreen extends React.Component {
     }
 
     showAlert = (title, message) => {
-        this.setState({alert_options: {shown: true, title: title, message: message}});
+        this.setParentState({alert_options: {shown: true, title: title, message: message}}, 'show alert');
     };
 
     hideAlert = () => {
-        this.setState({alert_options: {shown: false}});
+        this.setParentState({alert_options: {shown: false}}, 'hide alert');
     };
 
-    on_api_error(message, activity_id) {
+    on_api_error(activity_id, message='Uknown Error') {
         let screen_object = this;
+        console.log('on error', activity_id, message);
         let error_activity = { message: message, activity_id: activity_id };
         if (!screen_object.error_list.find(x => x.message == message || x.activity_id == activity_id)) {
             screen_object.error_list.push(error_activity);
             screen_object.state.error_message = screen_object.error_list.map(item => item.message).join('\n');
         }
-        screen_object.hideLoader(activity_id);
+        screen_object.hideLoader(activity_id, 'error');
     }
 
     on_api_success(activity_id) {
@@ -49,12 +50,13 @@ export default class AbstractScreen extends React.Component {
             }
             i += 1;
         }
-        screen_object.hideLoader(activity_id);
+        screen_object.hideLoader(activity_id, 'success');
     }
 
-    hideLoader(activity_id, keep_state = 0) {
+    hideLoader(activity_id, event_type='Unknown') {
         delete this.state.loading[activity_id];
-        if (!keep_state && !Object.keys(this.state.loading).length) {
+        console.log('hide loader ', activity_id, event_type);
+        if (!Object.keys(this.state.loading).length) {
             this.setParentState({}, 'complete ' + activity_id);
         }
     }
