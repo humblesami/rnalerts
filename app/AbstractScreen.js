@@ -3,6 +3,7 @@ import "./ignoreWarnings";
 import styles from './styles/main';
 import ServerApi from './services/api';
 import AppButton from './components/AppButton';
+import AwesomeAlert from 'react-native-awesome-alerts';
 import { View, Text, ActivityIndicator, ScrollView } from 'react-native';
 
 
@@ -14,31 +15,36 @@ export default class AbstractScreen extends React.Component {
         this.apiClient = new ServerApi(this);
         this.state = {
             loading: {},
-            done_popup: '',
-            warning_popup: '',
-            error_message : '',
-            warning_message: '',
+            error_message: '',
+            alert_options : {shown: false, title: 'Main', message: 'Nothing'}
         };
     }
 
+    showAlert = (title, message) => {
+        this.setState({alert_options: {shown: true, title: title, message: message}});
+    };
 
-    on_api_error(message, activity_id){
+    hideAlert = () => {
+        this.setState({alert_options: {shown: false}});
+    };
+
+    on_api_error(message, activity_id) {
         let screen_object = this;
-        let error_activity = {message: message, activity_id: activity_id};
-        if(!screen_object.error_list.find(x=> x.message == message || x.activity_id == activity_id)) {
+        let error_activity = { message: message, activity_id: activity_id };
+        if (!screen_object.error_list.find(x => x.message == message || x.activity_id == activity_id)) {
             screen_object.error_list.push(error_activity);
-            screen_object.state.error_message =  screen_object.error_list.map(item=>item.message).join('\n');
+            screen_object.state.error_message = screen_object.error_list.map(item => item.message).join('\n');
         }
         screen_object.hideLoader(activity_id);
     }
 
-    on_api_success(activity_id){
+    on_api_success(activity_id) {
         let screen_object = this;
         let i = 0;
-        for(let item of screen_object.error_list){
-            if(item.activity_id == activity_id){
+        for (let item of screen_object.error_list) {
+            if (item.activity_id == activity_id) {
                 screen_object.error_list.splice(i, 1);
-                screen_object.state.error_message =  screen_object.error_list.map(item=>item.message).join('\n');
+                screen_object.state.error_message = screen_object.error_list.map(item => item.message).join('\n');
                 break;
             }
             i += 1;
@@ -46,23 +52,23 @@ export default class AbstractScreen extends React.Component {
         screen_object.hideLoader(activity_id);
     }
 
-    hideLoader(activity_id, keep_state=0){
+    hideLoader(activity_id, keep_state = 0) {
         delete this.state.loading[activity_id];
-        if(!keep_state && !Object.keys(this.state.loading).length){
-            this.setParentState({}, 'complete '+activity_id);
+        if (!keep_state && !Object.keys(this.state.loading).length) {
+            this.setParentState({}, 'complete ' + activity_id);
         }
     }
 
-    showLoader(activity_id, time_limit=10, keep_state=0){
+    showLoader(activity_id, time_limit = 10, keep_state = 0) {
         let obj_this = this;
         this.state.loading[activity_id] = 1;
-        if(!keep_state && Object.keys(this.state.loading).length == 1){
-            this.setParentState({}, 'init '+activity_id);
+        if (!keep_state && Object.keys(this.state.loading).length == 1) {
+            this.setParentState({}, 'init ' + activity_id);
         }
-        setTimeout(()=>{
-            if(obj_this.state.loading[activity_id]){
-                let message = 'Removed loader '+activity_id+' after waiting '+obj_this.max_request_wait + ' seconds';
-                message += ' Service timed out '+(obj_this.max_request_wait - obj_this.apiClient.fetch_timeout)+ ' seconds ago';
+        setTimeout(() => {
+            if (obj_this.state.loading[activity_id]) {
+                let message = 'Removed loader ' + activity_id + ' after waiting ' + obj_this.max_request_wait + ' seconds';
+                message += ' Service timed out ' + (obj_this.max_request_wait - obj_this.apiClient.fetch_timeout) + ' seconds ago';
                 alert(message);
                 obj_this.hideLoader(activity_id);
             }
@@ -70,42 +76,35 @@ export default class AbstractScreen extends React.Component {
     }
 
     st_upd = 0;
-    setParentState(values, source='unknown') {
+    setParentState(values, source = 'unknown') {
         let obj_this = this;
         if (this.last_rendered) {
             obj_this.st_upd += 1;
             super.setState(values);
-            console.log('\n Pstate updates = '+obj_this.st_upd+' => '+Date().substr(19,5)+' => '+source);
+            console.log('\n Pstate updates = ' + obj_this.st_upd + ' => ' + Date().substr(19, 5) + ' => ' + source);
             //console.log('\n Pstate updates = '+obj_this.st_upd+' => '+source, Date(), values);
         }
-        else{
+        else {
             for (let key in values) {
                 this.state[key] = values[key];
             }
         }
     }
 
-    setState(values, source='unknown') {
+    setState(values, source = 'unknown') {
         let obj_this = this;
         if (this.last_rendered) {
             obj_this.st_upd += 1;
             super.setState(values);
-            console.log('\n Cstate updates = '+obj_this.st_upd+', source '+source);
+            console.log('\n Cstate updates = ' + obj_this.st_upd + ', source ' + source);
         }
-        else{
+        else {
             for (let key in values) {
                 this.state[key] = values[key];
             }
         }
     }
 
-    popup(state_attribute, message){
-        let obj_this = this;
-        obj_this.setParentState({state_attribute: message}, 'popup start for '+state_attribute);
-        setTimeout(()=>{
-            obj_this.setParentState({state_attribute: ''}, 'popup end for '+state_attribute);
-        }, 3500);
-    }
 
     render_in_parent(child_view) {
         let obj_this = this;
@@ -120,8 +119,8 @@ export default class AbstractScreen extends React.Component {
             }
         }
 
-        function show_activity_indicator(){
-            if(Object.keys(obj_this.state.loading).length){
+        function show_activity_indicator() {
+            if (Object.keys(obj_this.state.loading).length) {
                 return (
                     <View style={styles.loader}>
                         <ActivityIndicator color="orange" size="large" />
@@ -130,48 +129,36 @@ export default class AbstractScreen extends React.Component {
             }
         }
 
-        function show_done(){
-            if(obj_this.state.done_popup){
-                return (
-                    <View style={styles.loader}>
-                        <View style={[styles.popup_container, styles.green_container]}>
-                            <Text style={styles.popup_message}>{obj_this.state.done_popup}</Text>
+        function alert_dom(){
+            return (
+                <AwesomeAlert
+                    show={obj_this.state.alert_options.shown}
+                    showProgress={false}
+                    title={obj_this.state.alert_options.title}
+                    message=""
+                    closeOnTouchOutside={true}
+                    onCancelPressed={() => {
+                        obj_this.hideAlert();
+                    }}
+                    onConfirmPressed={() => {
+                        obj_this.hideAlert();
+                    }}
+                    customView={(
+                        <View style={{paddingLeft: 50,paddingRight: 50}}>
+                            <Text>{obj_this.state.alert_options.message}</Text>
+                            <AppButton onPress={() => { obj_this.hideAlert() }} title="OK" />
                         </View>
-                    </View>
-                );
-            }
+                    )}
+                />
+            );
         }
 
-        function show_warnings() {
-            if (obj_this.state.warning_message) {
-                return (
-                    <View style={[styles.yellow_container]}>
-                        <Text color='black' style={styles.popup_message}>{obj_this.state.warning_message}</Text>
-                    </View>
-                );
-            }
-        }
-
-        function show_temporary_warning() {
-            if (obj_this.state.warning_popup) {
-                return (
-                    <View style={styles.loader}>
-                        <View style={[styles.popup_container, styles.yellow_container]}>
-                            <Text color='black' style={styles.popup_message}>{obj_this.state.warning_popup}</Text>
-                        </View>
-                    </View>
-                );
-            }
-        }
-
-        function get_base_items(){
+        function get_base_items() {
             let res = (
                 <View>
                     {show_activity_indicator()}
-                    {show_done()}
+                    {alert_dom()}
                     {show_errors()}
-                    {show_warnings()}
-                    {show_temporary_warning()}
                 </View>
             );
             return res;

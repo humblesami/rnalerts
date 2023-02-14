@@ -8,19 +8,19 @@ export default styles = StyleSheet.create({
     main_container: {
         padding: 10
     },
-    popup_container:{
+    popup_container: {
         padding: 40,
         width: '80%',
         zIndex: 4,
         elevation: 4
     },
-    green_container:{
+    green_container: {
         backgroundColor: 'green',
     },
-    yellow_container:{
+    yellow_container: {
         backgroundColor: 'orange',
     },
-    popup_message:{
+    popup_message: {
         fontSize: 18,
         color: 'white'
     },

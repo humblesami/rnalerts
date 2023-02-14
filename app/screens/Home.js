@@ -92,7 +92,7 @@ export default class HomeScreen extends AbstractScreen {
         if (resp.status == 'ok') {
             let temp1 = 'subscribed';
             if(!item.active){ temp1 = 'unsubscribed'; }
-            obj_this.popup('done_popup', 'Successfully '+temp1);
+            obj_this.showAlert('Success', temp1);
         }
     }
 
@@ -108,14 +108,14 @@ export default class HomeScreen extends AbstractScreen {
         let warn_message = 'No active channels found';
         if (resp.status == 'ok') {
             if (!resp.channels.length) {
-                obj_this.state.warning_message = warn_message;
+                obj_this.showAlert('Warning', warn_message);
             }
             obj_this.setParentState({ subscriptions: resp.channels, servers_list: resp.servers_list}, 'render subscriptions');
             rnStorage.save('push_token', obtained_token).then(() => { });
             rnStorage.save('auth_token', resp.auth_token).then(() => { });
         }
         else{
-            obj_this.state.warning_message = warn_message;
+            obj_this.showAlert('Warning', warn_message);
         }
     }
 
@@ -157,7 +157,7 @@ export default class HomeScreen extends AbstractScreen {
         else {
             json.data.responses.map(item=>{ res_list.find(x => x.check_path == item.server.check_path).status = item.status});
             this.state.servers_list = res_list;
-            this.popup('done_message', 'Servers status checked and updated');
+            obj_this.showAlert('Success', 'Servers status checked and updated');
         }
     }
 
@@ -248,7 +248,7 @@ export default class HomeScreen extends AbstractScreen {
         let child_view = (
             <View>
                 {server_status_list(obj_this.state.servers_list)}
-                <AppButton onPress={() => { obj_this.check_servers() }} title="Check Servers Now" />
+                <AppButton onPress={() => { obj_this.check_servers() }} title="Manually Check Servers" />
                 <Text selectable={true}>Token == {obj_this.state.expoToken || 'Obtaining token'}</Text>
                 <AppButton onPress={() => { obj_this.copyToken() }} title={obj_this.state.copyBtnLabel} />
                 {render_notitifcation_sources(obj_this.state.subscriptions, 'Servers')}
