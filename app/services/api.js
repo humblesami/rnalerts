@@ -24,9 +24,8 @@ export default class ServerApi {
 
         try{
             this.composer.showLoader(endpoint, max_request_wait);
-            let fetch_options = {
-                method: method,
-            }
+            method = method.toLowerCase()
+            let fetch_options = {method: method}
 
             if(method == 'ping'){
                 server_endpoint = endpoint;
@@ -44,7 +43,7 @@ export default class ServerApi {
                         'Authorization': 'Token ' + auth_token
                     }
                 }
-                if(method.toLowerCase() == 'get'){
+                if(method == 'get'){
                     fetch_options.data = req_data;
                 }
                 else{
@@ -60,8 +59,7 @@ export default class ServerApi {
                     fetchResult.status = 'failed';
                     if(fetchResult.detail)
                     {
-                        fetchResult.message = fetchResult.detail;
-                        console.log('\nFailed with error code', fetch_options, endpoint);
+                        fetchResult.message = 'Failed becaused => ' + fetchResult.detail;
                     }
                     else{
                         if(!fetchResult.message)
@@ -81,7 +79,7 @@ export default class ServerApi {
                     raw_result.code = 513;
                 }
                 else{
-                    raw_result.message = 'Error => ' + er_not_accessible;
+                    raw_result.message = 'Error in fetch => ' + er_not_accessible;
                 }
             }
             api_result = obj_this.format_result(endpoint, raw_result);

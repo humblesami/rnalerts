@@ -75,7 +75,8 @@ export default class AbstractScreen extends React.Component {
         if (this.last_rendered) {
             obj_this.st_upd += 1;
             super.setState(values);
-            console.log('\n Pstate updates = '+obj_this.st_upd+' => '+source);
+            console.log('\n Pstate updates = '+obj_this.st_upd+' => '+Date().substr(19,5)+' => '+source);
+            //console.log('\n Pstate updates = '+obj_this.st_upd+' => '+source, Date(), values);
         }
         else{
             for (let key in values) {
@@ -100,13 +101,10 @@ export default class AbstractScreen extends React.Component {
 
     popup(state_attribute, message){
         let obj_this = this;
-        console.log('\nWarning => '+message);
-        obj_this.state[state_attribute] = message;
-        obj_this.setParentState({}, 'popup start for '+state_attribute);
+        obj_this.setParentState({state_attribute: message}, 'popup start for '+state_attribute);
         setTimeout(()=>{
-            obj_this.state[state_attribute] = '';
-            obj_this.setParentState({}, 'popup end for '+state_attribute);
-        }, 1500);
+            obj_this.setParentState({state_attribute: ''}, 'popup end for '+state_attribute);
+        }, 3500);
     }
 
     render_in_parent(child_view) {

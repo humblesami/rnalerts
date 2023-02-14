@@ -151,12 +151,13 @@ export default class HomeScreen extends AbstractScreen {
         let res_list = obj_this.state.servers_list;
         let json = await obj_this.apiClient.get_data(endpoint);
         if(!(json && json.status == 'ok')){
-            await obj_this.check_servers_client();
+            //await obj_this.check_servers_client();
             return;
         }
         else {
             json.data.responses.map(item=>{ res_list.find(x => x.check_path == item.server.check_path).status = item.status});
-            this.setParentState({ servers_list: res_list }, 'render server list after check');
+            this.state.servers_list = res_list;
+            this.popup('done_message', 'Servers status checked and updated');
         }
     }
 
