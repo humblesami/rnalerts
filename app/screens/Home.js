@@ -39,21 +39,22 @@ export default class HomeScreen extends AbstractScreen {
     }
 
     async componentDidMount() {
-        console.log('Home Mount');
         let obj_this = this;
-        obj_this.showLoader('/device/register');
+        obj_this.st_upd = 0;
+        let activity_id = '/device/register';
+        obj_this.showLoader(activity_id, 5);
         this.registerForPushNotificationsAsync().then(pushToken=>{
-            obj_this.hideLoader('/device/register');
             if (!pushToken) {
-                obj_this.setState({ expoToken: 'Got no token' });
+                pushToken = 'Got no token';
             }
-            else {
-                obj_this.setState({ expoToken: pushToken });
+            obj_this.state.expoToken = pushToken;
+            obj_this.hideLoader(activity_id);
+            if(pushToken != 'Got no token') {
                 obj_this.submit_token(pushToken);
             }
         }).catch(er8=>{
-            obj_this.hideLoader('/device/register');
-            obj_this.setState({ expoToken: '' + er8 });
+            obj_this.state.expoToken = '' + er8;
+            obj_this.hideLoader(activity_id);
         });
 
         obj_this.pushListener = Notifications.addNotificationReceivedListener(notification => notification.request.content.categoryIdentifier);
@@ -70,17 +71,8 @@ export default class HomeScreen extends AbstractScreen {
     copyToken() {
         let obj_this = this;
         Clipboard.setString(obj_this.state.expoToken);
-        obj_this.setState({ copyBtnLabel: 'Copied' });
+        obj_this.setParentState({ copyBtnLabel: 'Copied' }, 'token copied');
     };
-
-    async get_server_list() {
-        let obj_this = this;
-        let endpoint = '/servers/list';
-        let resp = await obj_this.apiClient.get_data(endpoint);
-        if (resp.status == 'ok') {
-            this.setState({ servers_list: resp.list });
-        }
-    }
 
     playSound() {
         SoundPlayer.playSoundFile('beep', 'mp3');
@@ -94,14 +86,13 @@ export default class HomeScreen extends AbstractScreen {
         let obj_this = this;
         let item = obj_this.state.subscriptions.find((x) => x.channel__name == notification_source);
         item.active = !item.active;
-        obj_this.setState({});
         let endpoint = '/expo/toggle';
         let data = {channel: notification_source, push_token: obj_this.state.expoToken};
         let resp = await obj_this.apiClient.post_data(endpoint, data);
         if (resp.status == 'ok') {
             let temp1 = 'subscribed';
             if(!item.active){ temp1 = 'unsubscribed'; }
-            obj_this.popup('done_message', 'Successfully '+temp1);
+            obj_this.popup('done_popup', 'Successfully '+temp1);
         }
     }
 
@@ -114,16 +105,18 @@ export default class HomeScreen extends AbstractScreen {
         let obj_this = this;
         let endpoint = '/servers/submit';
         let resp = await obj_this.apiClient.post_data(endpoint, { obtained_token: obtained_token });
-
+        let warn_message = 'No active channels found';
         if (resp.status == 'ok') {
             if (!resp.channels.length) {
-                obj_this.popup('warning_message', 'No active channels found');
+                obj_this.state.warning_message = warn_message;
             }
-            obj_this.setState({ subscriptions: resp.channels, servers_list: resp.servers_list});
+            obj_this.setParentState({ subscriptions: resp.channels, servers_list: resp.servers_list}, 'render subscriptions');
             rnStorage.save('push_token', obtained_token).then(() => { });
             rnStorage.save('auth_token', resp.auth_token).then(() => { });
         }
-        else{ obj_this.popup('warning_message', 'No active channels found'); }
+        else{
+            obj_this.state.warning_message = warn_message;
+        }
     }
 
     async registerForPushNotificationsAsync() {
@@ -155,19 +148,15 @@ export default class HomeScreen extends AbstractScreen {
     async check_servers() {
         let obj_this = this;
         let endpoint = '/servers/check-only';
-        obj_this.state.loading[endpoint] = 1;
-        obj_this.setState({});
         let res_list = obj_this.state.servers_list;
         let json = await obj_this.apiClient.get_data(endpoint);
         if(!(json && json.status == 'ok')){
             await obj_this.check_servers_client();
-            delete obj_this.state.loading[endpoint];
-            obj_this.setState({});
             return;
         }
         else {
             json.data.responses.map(item=>{ res_list.find(x => x.check_path == item.server.check_path).status = item.status});
-            this.setState({ servers_list: res_list });
+            this.setParentState({ servers_list: res_list }, 'render server list after check');
         }
     }
 
@@ -184,10 +173,6 @@ export default class HomeScreen extends AbstractScreen {
             this.set_failure_message(message);
             console.log(message, ex3);
         }
-    }
-
-    refreshIt(){
-        console.log('Home');
     }
 
     render() {

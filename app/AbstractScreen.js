@@ -12,31 +12,27 @@ export default class AbstractScreen extends React.Component {
         this.error_list = [];
         this.last_rendered = '';
         this.apiClient = new ServerApi(this);
-        this.max_request_wait = Math.ceil(this.apiClient.fetch_timeout * 1.5);
         this.state = {
             loading: {},
-            done_message: '',
+            done_popup: '',
+            warning_popup: '',
             error_message : '',
             warning_message: '',
         };
     }
 
 
-    on_api_error(message, activity_id, api_base_url){
+    on_api_error(message, activity_id){
         let screen_object = this;
-        if(message.startsWith('No result')){
-            message = 'Unable to connect server ' + api_base_url
-        }
         let error_activity = {message: message, activity_id: activity_id};
-        console.log('\nError detail => ', error_activity);
         if(!screen_object.error_list.find(x=> x.message == message || x.activity_id == activity_id)) {
             screen_object.error_list.push(error_activity);
             screen_object.state.error_message =  screen_object.error_list.map(item=>item.message).join('\n');
         }
+        screen_object.hideLoader(activity_id);
     }
 
-    on_success(activity_id){
-        let index = -1;
+    on_api_success(activity_id){
         let screen_object = this;
         let i = 0;
         for(let item of screen_object.error_list){
@@ -47,60 +43,70 @@ export default class AbstractScreen extends React.Component {
             }
             i += 1;
         }
+        screen_object.hideLoader(activity_id);
     }
 
-    hideLoader(activity_id){
+    hideLoader(activity_id, keep_state=0){
         delete this.state.loading[activity_id];
-        if(!Object.keys(this.state.loading).length){
-            this.setState({});
+        if(!keep_state && !Object.keys(this.state.loading).length){
+            this.setParentState({}, 'complete '+activity_id);
         }
     }
 
-    showLoader(activity_id){
+    showLoader(activity_id, time_limit=10, keep_state=0){
         let obj_this = this;
         this.state.loading[activity_id] = 1;
-        if(Object.keys(this.state.loading).length == 1){
-            this.setState({});
+        if(!keep_state && Object.keys(this.state.loading).length == 1){
+            this.setParentState({}, 'init '+activity_id);
         }
         setTimeout(()=>{
             if(obj_this.state.loading[activity_id]){
-                let message = 'Removed loader by time out after '+obj_this.max_request_wait;
-                message += ' while service had timed out '+(obj_this.max_request_wait - obj_this.apiClient.fetch_timeout)+ 'ms ago';
+                let message = 'Removed loader '+activity_id+' after waiting '+obj_this.max_request_wait + ' seconds';
+                message += ' Service timed out '+(obj_this.max_request_wait - obj_this.apiClient.fetch_timeout)+ ' seconds ago';
                 alert(message);
                 obj_this.hideLoader(activity_id);
             }
-        }, obj_this.max_request_wait);
-    }
-
-    on_warning(txt) {
-        this.setState({ warning_message: txt });
+        }, (time_limit * 1000) + 1000);
     }
 
     st_upd = 0;
-    setState(values) {
+    setParentState(values, source='unknown') {
         let obj_this = this;
-        if (!this.last_rendered) {
+        if (this.last_rendered) {
+            obj_this.st_upd += 1;
+            super.setState(values);
+            console.log('\n Pstate updates = '+obj_this.st_upd+' => '+source);
+        }
+        else{
             for (let key in values) {
                 this.state[key] = values[key];
             }
         }
-        obj_this.st_upd += 1;
-        super.setState(values);
-        //console.log(11, this.state.warning_message, 12, this.state.error_message, 13, this.state.done_message);
+    }
+
+    setState(values, source='unknown') {
+        let obj_this = this;
+        if (this.last_rendered) {
+            obj_this.st_upd += 1;
+            super.setState(values);
+            console.log('\n Cstate updates = '+obj_this.st_upd+', source '+source);
+        }
+        else{
+            for (let key in values) {
+                this.state[key] = values[key];
+            }
+        }
     }
 
     popup(state_attribute, message){
         let obj_this = this;
+        console.log('\nWarning => '+message);
         obj_this.state[state_attribute] = message;
-        obj_this.setState({});
+        obj_this.setParentState({}, 'popup start for '+state_attribute);
         setTimeout(()=>{
             obj_this.state[state_attribute] = '';
-            obj_this.setState({});
+            obj_this.setParentState({}, 'popup end for '+state_attribute);
         }, 1500);
-    }
-
-    refreshIt(){
-        console.log('Par');
     }
 
     render_in_parent(child_view) {
@@ -127,25 +133,33 @@ export default class AbstractScreen extends React.Component {
         }
 
         function show_done(){
-            if(obj_this.state.done_message){
-                console.log('don11', obj_this.state.warning_message);
+            if(obj_this.state.done_popup){
                 return (
                     <View style={styles.loader}>
                         <View style={[styles.popup_container, styles.green_container]}>
-                            <Text style={styles.popup_message}>{obj_this.state.done_message}</Text>
+                            <Text style={styles.popup_message}>{obj_this.state.done_popup}</Text>
                         </View>
                     </View>
                 );
             }
         }
 
-        function show_warning() {
+        function show_warnings() {
             if (obj_this.state.warning_message) {
-                console.log('w11', obj_this.state.warning_message);
+                return (
+                    <View style={[styles.yellow_container]}>
+                        <Text color='black' style={styles.popup_message}>{obj_this.state.warning_message}</Text>
+                    </View>
+                );
+            }
+        }
+
+        function show_temporary_warning() {
+            if (obj_this.state.warning_popup) {
                 return (
                     <View style={styles.loader}>
                         <View style={[styles.popup_container, styles.yellow_container]}>
-                            <Text style={styles.popup_message}>{obj_this.state.warning_message}</Text>
+                            <Text color='black' style={styles.popup_message}>{obj_this.state.warning_popup}</Text>
                         </View>
                     </View>
                 );
@@ -158,7 +172,8 @@ export default class AbstractScreen extends React.Component {
                     {show_activity_indicator()}
                     {show_done()}
                     {show_errors()}
-                    {show_warning()}
+                    {show_warnings()}
+                    {show_temporary_warning()}
                 </View>
             );
             return res;

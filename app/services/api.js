@@ -4,27 +4,26 @@ export default class ServerApi {
     constructor(component, time_limit=8){
         this.active_server_url = 'https://dap.92newshd.tv';
         //this.active_server_url = 'http://127.0.0.1:8000';
-        this.fetch_timeout = time_limit * 1000;
+        this.fetch_timeout = time_limit;
         this.api_server_url = this.active_server_url;
         this.composer = component;
     }
 
     async fetch_request(endpoint, method, req_data={}, time_limit=0) {
         let obj_this = this;
-        const abort_controller = new AbortController();
-        let max_request_wait = time_limit || obj_this.fetch_timeout;
-        const timeoutId = setTimeout(() => abort_controller.abort(), max_request_wait);
-
         let api_base_url = this.api_server_url;
         let server_endpoint = api_base_url + endpoint;
-
         let raw_result = {
             status: 'failed', code: 512, message: 'No result',
             server_endpoint: server_endpoint, endpoint: endpoint.substr(1)
         }
+        let api_result = raw_result;
+        const abort_controller = new AbortController();
+        let max_request_wait = (time_limit ? time_limit : obj_this.fetch_timeout) * 1000;
+        const timeoutId = setTimeout(() => abort_controller.abort(), max_request_wait);
+
         try{
-            //console.log('\nRequesting => '+endpoint);
-            this.composer.showLoader(endpoint);
+            this.composer.showLoader(endpoint, max_request_wait);
             let fetch_options = {
                 method: method,
             }
@@ -53,69 +52,60 @@ export default class ServerApi {
                 }
             }
             fetch_options.signal = abort_controller.signal;
-            let fetchResult = {status: 512};
             try{
-                fetchResult = await fetch(server_endpoint, fetch_options);
+                let fetchResult = await fetch(server_endpoint, fetch_options);
                 raw_result.code = fetchResult.status;
-                let http_result = await fetchResult.json();
-                if(!http_result.status){
-                    http_result.status = 'failed';
-                    if(http_result.detail)
+                fetchResult = await fetchResult.json();
+                if(!fetchResult.status){
+                    fetchResult.status = 'failed';
+                    if(fetchResult.detail)
                     {
-                        http_result.message = http_result.detail;
+                        fetchResult.message = fetchResult.detail;
                         console.log('\nFailed with error code', fetch_options, endpoint);
                     }
                     else{
-                        if(!http_result.message)
+                        if(!fetchResult.message)
                         {
-                            http_result.message = 'Invalid access '+raw_result.code;
+                            fetchResult.message = 'Invalid access '+raw_result.code;
                         }
                     }
                 }
-                for(let key in http_result){
-                    raw_result[key] = http_result[key];
+                for(let key in fetchResult){
+                    raw_result[key] = fetchResult[key];
                 }
             }
             catch(er_not_accessible){
                 er_not_accessible = '' + er_not_accessible;
                 if(er_not_accessible.indexOf('AbortError') > -1){
-                    raw_result.message = ('Timed out after '+obj_this.fetch_timeout);
+                    raw_result.message = ('Timed out after '+ (obj_this.fetch_timeout)+ ' seconds');
                     raw_result.code = 513;
-
                 }
                 else{
-                    console.log('\nError in reaching '+er_not_accessible);
-                    raw_result.message = '' + er_not_accessible;
+                    raw_result.message = 'Error => ' + er_not_accessible;
                 }
             }
-            //console.log('\All gone well => '+endpoint);
-            let api_result = obj_this.format_result(endpoint, timeoutId, api_base_url, raw_result);
+            api_result = obj_this.format_result(endpoint, raw_result);
             if(api_result.status == 'ok' || api_result.status == 'success'){
-                this.composer.on_success(endpoint);
+                this.composer.on_api_success(endpoint);
+                console.log(api_result.message);
             }
-            return api_result;
+            else{
+                this.composer.on_api_error(api_result.message, endpoint);
+                console.log(api_result.message);
+            }
         }
         catch(er_api){
-            try{
-                console.log('\nReached top catch => '+er_api);
-                let api_result = obj_this.format_result(endpoint, timeoutId, api_base_url, raw_result);
-                return Promise.resolve(api_result);
-            }
-            catch(gen_err){
-                console.log('\nError in catch => ', gen_err);
-                alert('Error in api catch');
-                return Promise.resolve({status: 'error', message: '' + gen_err, error: '' + gen_err});
-            }
+            alert('Error in api catching error');
+            api_result = {status: 'error', message: '' + er_api, error: '' + er_api};
+            this.composer.on_api_error(endpoint);
         }
+        clearTimeout(timeoutId);
+        return api_result;
     }
 
-    format_result(endpoint, timeoutId, api_base_url, processed_result){
-        let server_endpoint = api_base_url + endpoint;
+    format_result(endpoint, processed_result){
         if(processed_result.status == 'success'){
             processed_result.status = 'ok';
-            if(processed_result.message == 'No result'){
-                processed_result.message = "Success";
-            }
         }
         if(processed_result.status != 'ok'){
             processed_result.status = 'failed';
@@ -128,15 +118,14 @@ export default class ServerApi {
             if(!processed_result.message){
                 processed_result.message = 'Invalid response';
             }
-            processed_result.message += ' from '+ endpoint.substr(1);
-            this.composer.on_api_error(processed_result.message, endpoint, api_base_url);
-            console.log('\nGot error ' + processed_result.message, ' from => '+server_endpoint);
+            processed_result.message += ' in => '+ endpoint.substr(1);
+            processed_result.status = 'error';
         }
         else{
-            console.log('\OK from => ', server_endpoint,  processed_result.message);
+            if(processed_result.message == 'No result'){
+                processed_result.message = "Success at " + endpoint.substr(1);
+            }
         }
-        clearTimeout(timeoutId);
-        this.composer.hideLoader(endpoint);
         return processed_result;
     }
 
@@ -159,7 +148,6 @@ export default class ServerApi {
             let req_data = item_to_save;
             if(item_to_save.files){
                 let req_data = new FormData();
-                // console.log(item_to_save);
                 for (let key in item_to_save) {
                     req_data.append(key, item_to_save[key]);
                 }
