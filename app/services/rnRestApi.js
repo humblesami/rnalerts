@@ -1,7 +1,7 @@
-import ServerApi from './api';
 import rnStorage from './rnStorage';
+import AjaxClient from '../../my_modules/jsajax/index';
 
-export default class restServerApi extends ServerApi {
+export default class restServerApi extends AjaxClient {
     async set_headers(fetch_options, headers){
         fetch_options.headers = headers;
         fetch_options.headers = {

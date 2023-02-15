@@ -42,6 +42,9 @@ export default class HomeScreen extends AbstractScreen {
         let obj_this = this;
         obj_this.st_upd = 0;
         let activity_id = '/device/register';
+        obj_this.apiClient.ping('https://google.com').then(x=>{
+            console.log('Result of ping', x);
+        });
         obj_this.showLoader(activity_id, 5);
         this.registerForPushNotificationsAsync().then(pushToken=>{
             if (!pushToken) {
