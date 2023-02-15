@@ -1,15 +1,46 @@
-import rnStorage from './rnStorage';
-
 export default class ServerApi {
-    constructor(component, time_limit=8){
-        this.active_server_url = 'https://dap.92newshd.tv';
-        //this.active_server_url = 'http://127.0.0.1:8000';
+    constructor(api_base_url, time_limit=0, composer=undefined){
+        if(!time_limit){
+            time_limit = 20;
+        }
+        this.api_server_url = api_base_url;
         this.fetch_timeout = time_limit;
-        this.api_server_url = this.active_server_url;
-        this.composer = component;
+        let composer_template = {
+            on_api_request_init: function(){},
+            on_api_success: function(){},
+            on_api_error: function(){},
+            on_api_failed: function(){},
+        }
+        if(!composer){
+            composer = composer_template;
+        }
+        else{
+            if(!composer.on_api_request_init){ composer.on_api_request_init = composer_template.on_api_request_init }
+            if(!composer.on_api_success){ composer.on_api_success = composer_template.on_api_success }
+            if(!composer.on_api_error){ composer.on_api_error = composer_template.on_api_error }
+            if(!composer.on_api_failed){ composer.on_api_failed = composer_template.on_api_failed }
+        }
+        this.composer = composer;
     }
 
-    fetch_request(endpoint, method, req_data={}, time_limit=0) {
+    async set_headers(fetch_options, headers){
+        fetch_options.headers = headers;
+    }
+
+    async on_api_response(res_type, endpoint, message=''){
+        console.log('Api response => '+ res_type, this.api_server_url+ endpoint, message);
+        if(res_type == 'success'){
+            this.composer.on_api_success(endpoint, message);
+        }
+        else if(res_type == 'error'){
+            this.composer.on_api_error(endpoint, message);
+        }
+        if(res_type == 'failed'){
+            this.composer.on_api_failed(endpoint, message);
+        }
+    }
+
+    async fetch_request(endpoint, method, req_data={}, headers={}, time_limit=0) {
         let obj_this = this;
         let api_base_url = this.api_server_url;
         let server_endpoint = api_base_url + endpoint;
@@ -20,20 +51,19 @@ export default class ServerApi {
         const abort_controller = new AbortController();
         let max_request_wait = (time_limit ? time_limit : obj_this.fetch_timeout) * 1000;
         const timeoutId = setTimeout(() => abort_controller.abort(), max_request_wait);
-
-        this.composer.showLoader(endpoint, max_request_wait);
+        this.composer.on_api_request_init(endpoint, max_request_wait);
         method = method.toLowerCase()
-        let fetch_options = {method: method}
+        let fetch_options = {method: method};
 
+        if(Object.keys(headers).length){
+            fetch_options.headers = headers;
+        }
         if(method == 'ping'){
             server_endpoint = endpoint;
             fetch_options.method = 'get';
         }
         else{
-            fetch_options.headers = {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            };
+            await this.set_headers(fetch_options, headers);
             if(method == 'get'){
                 fetch_options.data = req_data;
             }
@@ -42,12 +72,7 @@ export default class ServerApi {
             }
         }
         fetch_options.signal = abort_controller.signal;
-        return rnStorage.get('auth_token').then(auth_token=> {
-            if(auth_token){
-                fetch_options['headers']['Authorization'] = 'Token ' + auth_token;
-            }
-            return fetch(server_endpoint, fetch_options)
-        }).then(api_response=>{
+        return fetch(server_endpoint, fetch_options).then(api_response=>{
             if(!api_response.status){
                 if(api_response.detail)
                 {
@@ -77,10 +102,10 @@ export default class ServerApi {
             }
             let processed_result = obj_this.format_result(endpoint, raw_result);
             if(processed_result.status == 'ok' || processed_result.status == 'success'){
-                this.composer.on_api_success(endpoint);
+                this.on_api_response('success', endpoint);
             }
             else{
-                this.composer.on_api_error(endpoint, processed_result.message);
+                this.on_api_response('error', endpoint, processed_result.message);
             }
             return processed_result;
         }).catch(er_not_accessible => {
@@ -105,11 +130,11 @@ export default class ServerApi {
             else{
                 raw_result.message = 'Error in fetch => ' + er_not_accessible;
             }
-            this.composer.on_api_failed(endpoint, raw_result.message);
+            this.on_api_response('failed', endpoint, raw_result.message);
             return raw_result;
         }).catch(on_error=>{
             raw_result.message = 'Error 1 in catch => ' +on_error
-            this.composer.on_api_failed(endpoint, raw_result.message);
+            this.on_api_response('failed', endpoint, raw_result.message);
             return {status: 'failed', message: raw_result.message};
         }).catch(er_catch=>{
             raw_result.message = 'Error 2 in catch => ' +er_catch
@@ -153,26 +178,25 @@ export default class ServerApi {
         return this.fetch_request(url, 'ping', {}, max_time);
     }
 
-    async get_data(endpoint, req_data={}, max_time=0){
-        return this.fetch_request(endpoint, 'GET', req_data, max_time);
+    async get_data(endpoint, req_data={}, headers={}, max_time=0){
+        return this.fetch_request(endpoint, 'GET', req_data, headers, max_time);
     }
 
-    async post_data(endpoint, item_to_save={}, max_time=0){
+    async post_data(endpoint, req_data={}, headers={}, max_time=0){
         try{
-            let req_data = item_to_save;
-            if(item_to_save.files){
+            if(req_data.files){
                 let req_data = new FormData();
-                for (let key in item_to_save) {
-                    req_data.append(key, item_to_save[key]);
+                for (let key in req_data) {
+                    req_data.append(key, req_data[key]);
                 }
-                item_to_save.files.forEach((file, index) => {
+                req_data.files.forEach((file, index) => {
                     req_data.append('files', {
                         name: 'file' + index,
                         uri: file
                     });
                 });
             }
-            return this.fetch_request(endpoint, 'POST', req_data, max_time);
+            return this.fetch_request(endpoint, 'POST', req_data, headers, max_time);
         }
         catch(post_er){
             return new Promise(function (resolve, reject) {

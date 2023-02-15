@@ -1,8 +1,8 @@
 import React from 'react';
 import "./ignoreWarnings";
 import styles from './styles/main';
-import ServerApi from './services/api';
 import AppButton from './components/AppButton';
+import restServerApi from './services/rnRestApi';
 import AwesomeAlert from 'react-native-awesome-alerts';
 import { View, Text, ActivityIndicator, ScrollView } from 'react-native';
 
@@ -12,7 +12,9 @@ export default class AbstractScreen extends React.Component {
         super();
         this.error_list = [];
         this.last_rendered = '';
-        this.apiClient = new ServerApi(this);
+        let api_base_url = 'https://dap.92newshd.tv';
+        api_base_url = 'http://127.0.0.1:8000';
+        this.apiClient = new restServerApi(api_base_url, 8, this);
         this.state = {
             loading: {},
             error_message: '',
@@ -28,9 +30,13 @@ export default class AbstractScreen extends React.Component {
         this.setParentState({alert_options: {shown: false}}, 'hide alert');
     };
 
+    on_api_request_init(endpoint, max_request_wait){
+        this.showLoader(endpoint, max_request_wait);
+    }
+
     on_api_failed(activity_id, message='Uknown Error') {
         let screen_object = this;
-        console.log('on error', activity_id, message);
+        console.log('on api failed', activity_id, message);
         let error_activity = { message: message, activity_id: activity_id };
         if (!screen_object.error_list.find(x => x.message == message || x.activity_id == activity_id)) {
             screen_object.error_list.push(error_activity);
@@ -41,7 +47,7 @@ export default class AbstractScreen extends React.Component {
 
     on_api_error(activity_id, message='Uknown Error') {
         let screen_object = this;
-        console.log('on error', activity_id, message);
+        console.log('on api error', activity_id, message);
         let error_activity = { message: message, activity_id: activity_id };
         if (!screen_object.error_list.find(x => x.message == message || x.activity_id == activity_id)) {
             screen_object.error_list.push(error_activity);
@@ -66,7 +72,7 @@ export default class AbstractScreen extends React.Component {
 
     hideLoader(activity_id, event_type='Unknown') {
         delete this.state.loading[activity_id];
-        console.log('hide loader ', activity_id, event_type);
+        //console.log('hide loader ', activity_id, event_type);
         if (!Object.keys(this.state.loading).length) {
             this.setParentState({}, 'complete ' + activity_id);
         }
