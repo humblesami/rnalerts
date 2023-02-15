@@ -42,7 +42,6 @@ export default class ServerApi {
             }
         }
         fetch_options.signal = abort_controller.signal;
-
         return rnStorage.get('auth_token').then(auth_token=> {
             if(auth_token){
                 fetch_options['headers']['Authorization'] = 'Token ' + auth_token;
@@ -63,12 +62,16 @@ export default class ServerApi {
                 return raw_result;
             }
             if(api_response.status == 200){
+                if(method == 'ping'){
+                    return {status: 'ok'}
+                }
                 return api_response.json().then(json_result=> json_result);
             }
             else{
                 return {status: 'failed', message: 'Error thrown '+api_response.status+' by api'}
             }
         }).then(api_result=>{
+            clearTimeout(timeoutId);
             for(let key in api_result){
                 raw_result[key] = api_result[key];
             }
@@ -81,37 +84,38 @@ export default class ServerApi {
             }
             return processed_result;
         }).catch(er_not_accessible => {
+            clearTimeout(timeoutId);
             er_not_accessible = '' + er_not_accessible;
             raw_result.status = 'failed';
-            if(er_not_accessible.indexOf('JSON Parse error')){
-                raw_result.message = ('Api response is not a valid json');
-                if(!raw_result.code || raw_result.code == 512)
-                {
-                    raw_result.code = 500;
-                }
+            if(er_not_accessible.indexOf('AbortError') > -1){
+                raw_result.message = ('Timed out after '+ (obj_this.fetch_timeout)+ ' seconds');
+                raw_result.code = 513;
             }
             else if(er_not_accessible.indexOf('Network request failed') > -1)
             {
                 raw_result.message = 'Network request failed to reach';
             }
-            else if(er_not_accessible.indexOf('AbortError') > -1){
-                raw_result.message = ('Timed out after '+ (obj_this.fetch_timeout)+ ' seconds');
-                raw_result.code = 513;
+            else if(er_not_accessible.indexOf('JSON Parse error')){
+                raw_result.message = ('Api response is not a valid json');
+                if(!raw_result.code)
+                {
+                    raw_result.code = 500;
+                }
             }
             else{
                 raw_result.message = 'Error in fetch => ' + er_not_accessible;
             }
-            this.composer.on_api_error(endpoint, raw_result.message);
+            this.composer.on_api_failed(endpoint, raw_result.message);
             return raw_result;
         }).catch(on_error=>{
             raw_result.message = 'Error 1 in catch => ' +on_error
-            this.composer.on_api_error(endpoint, raw_result.message);
+            this.composer.on_api_failed(endpoint, raw_result.message);
             return {status: 'failed', message: raw_result.message};
         }).catch(er_catch=>{
             raw_result.message = 'Error 2 in catch => ' +er_catch
             return {status: 'failed', message: raw_result.message};
         }).finally(x => {
-            clearTimeout(timeoutId);
+
         });
     }
 

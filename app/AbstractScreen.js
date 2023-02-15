@@ -28,6 +28,17 @@ export default class AbstractScreen extends React.Component {
         this.setParentState({alert_options: {shown: false}}, 'hide alert');
     };
 
+    on_api_failed(activity_id, message='Uknown Error') {
+        let screen_object = this;
+        console.log('on error', activity_id, message);
+        let error_activity = { message: message, activity_id: activity_id };
+        if (!screen_object.error_list.find(x => x.message == message || x.activity_id == activity_id)) {
+            screen_object.error_list.push(error_activity);
+            screen_object.state.error_message = screen_object.error_list.map(item => item.message).join('\n');
+        }
+        screen_object.hideLoader(activity_id, 'error');
+    }
+
     on_api_error(activity_id, message='Uknown Error') {
         let screen_object = this;
         console.log('on error', activity_id, message);
