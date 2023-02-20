@@ -13,7 +13,7 @@ export default class AbstractScreen extends React.Component {
         this.error_list = [];
         this.last_rendered = '';
         let api_base_url = 'https://dap.92newshd.tv';
-        api_base_url = 'http://127.0.0.1:8000';
+        //api_base_url = 'http://127.0.0.1:8000';
         this.apiClient = new restServerApi(api_base_url, 8, this);
         this.state = {
             loading: {},
@@ -36,7 +36,7 @@ export default class AbstractScreen extends React.Component {
 
     on_api_failed(activity_id, message='Uknown Error') {
         let screen_object = this;
-        console.log('on api failed', activity_id, message);
+        //console.log('on api failed', activity_id, message);
         let error_activity = { message: message, activity_id: activity_id };
         if (!screen_object.error_list.find(x => x.message == message || x.activity_id == activity_id)) {
             screen_object.error_list.push(error_activity);
