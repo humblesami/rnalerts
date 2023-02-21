@@ -1,5 +1,5 @@
 import rnStorage from './rnStorage';
-import AjaxClient from '../../my_modules/jsajax/index';
+import {AjaxClient} from 'json-http-client';
 
 export default class restServerApi extends AjaxClient {
     async set_headers(fetch_options, headers){
