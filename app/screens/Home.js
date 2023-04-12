@@ -42,9 +42,6 @@ export default class HomeScreen extends AbstractScreen {
         let obj_this = this;
         obj_this.st_upd = 0;
         let activity_id = '/device/register';
-        // obj_this.apiClient.ping('https://google.com').then(x=>{
-        //     console.log('Result of ping', x);
-        // });
         obj_this.showLoader(activity_id, 5);
         this.registerForPushNotificationsAsync().then(pushToken=>{
             if (!pushToken) {
@@ -91,12 +88,12 @@ export default class HomeScreen extends AbstractScreen {
         item.active = !item.active;
         let endpoint = '/expo/toggle';
         let data = {channel: notification_source, push_token: obj_this.state.expoToken};
-        let resp = await obj_this.apiClient.post_data(endpoint, data);
-        if (resp.status == 'ok') {
+        obj_this.apiClient.on_api_success = function(res_data) {
             let temp1 = 'subscribed';
-            if(!item.active){ temp1 = 'unsubscribed'; }
+            if(!res_data.active){ temp1 = 'unsubscribed'; }
             obj_this.showAlert('Success', temp1);
         }
+        obj_this.apiClient.post_data(endpoint, data);
     }
 
     async submit_token(obtained_token) {
@@ -107,19 +104,19 @@ export default class HomeScreen extends AbstractScreen {
         }
         let obj_this = this;
         let endpoint = '/servers/submit';
-        let resp = await obj_this.apiClient.post_data(endpoint, { obtained_token: obtained_token });
-        let warn_message = 'No active channels found';
-        if (resp.status == 'ok') {
-            if (!resp.channels.length) {
+        obj_this.apiClient.on_api_success = function(res_data) {
+            let warn_message = 'No active channels found';
+            if (!res_data.channels.length) {
                 obj_this.showAlert('Warning', warn_message);
             }
-            obj_this.setParentState({ subscriptions: resp.channels, servers_list: resp.servers_list}, 'render subscriptions');
+            obj_this.setParentState({ subscriptions: res_data.channels, servers_list: res_data.servers_list}, 'render subscriptions');
             rnStorage.save('push_token', obtained_token).then(() => { });
-            rnStorage.save('auth_token', resp.auth_token).then(() => { });
+            rnStorage.save('auth_token', res_data.auth_token).then(() => { });
         }
-        else{
-            obj_this.showAlert('Warning', warn_message);
+        obj_this.apiClient.on_api_error = function(error_message) {
+            obj_this.showAlert('Warning', error_message);
         }
+        obj_this.apiClient.post_data(endpoint, { obtained_token: obtained_token });
     }
 
     async registerForPushNotificationsAsync() {
@@ -152,16 +149,12 @@ export default class HomeScreen extends AbstractScreen {
         let obj_this = this;
         let endpoint = '/servers/check-only';
         let res_list = obj_this.state.servers_list;
-        let json = await obj_this.apiClient.get_data(endpoint);
-        if(!(json && json.status == 'ok')){
-            //await obj_this.check_servers_client();
-            return;
-        }
-        else {
-            json.data.responses.map(item=>{ res_list.find(x => x.check_path == item.server.check_path).status = item.status});
+        obj_this.apiClient.on_api_success = function(res_data){
+            res_data.responses.map(item=>{ res_list.find(x => x.check_path == item.server.check_path).status = item.status});
             this.state.servers_list = res_list;
             obj_this.showAlert('Success', 'Servers status checked and updated');
         }
+        obj_this.apiClient.get_data(endpoint);
     }
 
     async check_servers_client() {
