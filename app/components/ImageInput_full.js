@@ -1,46 +1,20 @@
 import React, { useState } from 'react';
 import {
-    SafeAreaView, StyleSheet, Text, View, TouchableOpacity,
-    Image, Platform, PermissionsAndroid,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    View,
+    TouchableOpacity,
+    Image,
+    Platform,
+    PermissionsAndroid,
 } from 'react-native';
 
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 10,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-    },
-    titleText: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        paddingVertical: 20,
-    },
-    textStyle: {
-        padding: 10,
-        color: 'black',
-        textAlign: 'center',
-    },
-    buttonStyle: {
-        alignItems: 'center',
-        backgroundColor: '#DDDDDD',
-        padding: 5,
-        marginVertical: 10,
-        width: 250,
-    },
-    imageStyle: {
-        width: 200,
-        height: 200,
-        margin: 5,
-    },
-});
-
-function ImageInput() {
+const App = () => {
     const [filePath, setFilePath] = useState({});
+
     const requestCameraPermission = async () => {
         if (Platform.OS === 'android') {
             try {
@@ -106,6 +80,9 @@ function ImageInput() {
         if(Array.isArray(response)){
             response = response[0];
         }
+
+        console.log('Response = ', response);
+
         if (response.didCancel) {
             alert('User cancelled camera picker');
             return;
@@ -119,6 +96,13 @@ function ImageInput() {
             alert(response.errorMessage);
             return;
         }
+        console.log('base64 -> ', response.base64);
+        console.log('uri -> ', response.uri);
+        console.log('width -> ', response.width);
+        console.log('height -> ', response.height);
+        console.log('fileSize -> ', response.fileSize);
+        console.log('type -> ', response.type);
+        console.log('fileName -> ', response.fileName);
         setFilePath(response);
     }
 
@@ -140,15 +124,15 @@ function ImageInput() {
             return(<Image source={{ uri: filePath.uri }} style={styles.imageStyle} />);
         }
         else{
-            if(filePath.data)
-            {
-                return(<Image source={{ uri: 'data:image/jpeg;base64,' + filePath.data }} style={styles.imageStyle} />);
-            }
+            return(<Image source={{ uri: 'data:image/jpeg;base64,' + filePath.data }} style={styles.imageStyle} />);
         }
     }
 
     return (
         <SafeAreaView style={{ flex: 1 }}>
+            <Text style={styles.titleText}>
+                Example of Image Picker in React Native
+            </Text>
             <View style={styles.container}>
                 {preview_image(filePath)}
                 <TouchableOpacity
@@ -160,13 +144,56 @@ function ImageInput() {
                 <TouchableOpacity
                     activeOpacity={0.5}
                     style={styles.buttonStyle}
+                    onPress={() => captureImage('video')}>
+                    <Text style={styles.textStyle}>Launch Camera for Video</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    activeOpacity={0.5}
+                    style={styles.buttonStyle}
                     onPress={() => chooseFile('photo')}>
                     <Text style={styles.textStyle}>Choose Image</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    activeOpacity={0.5}
+                    style={styles.buttonStyle}
+                    onPress={() => chooseFile('video')}>
+                    <Text style={styles.textStyle}>Choose Video</Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
     );
 };
 
+export default App;
 
-export default ImageInput;
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        padding: 10,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+    },
+    titleText: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        paddingVertical: 20,
+    },
+    textStyle: {
+        padding: 10,
+        color: 'black',
+        textAlign: 'center',
+    },
+    buttonStyle: {
+        alignItems: 'center',
+        backgroundColor: '#DDDDDD',
+        padding: 5,
+        marginVertical: 10,
+        width: 250,
+    },
+    imageStyle: {
+        width: 200,
+        height: 200,
+        margin: 5,
+    },
+});

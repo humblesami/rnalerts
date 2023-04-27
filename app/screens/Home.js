@@ -7,6 +7,7 @@ import styles from '../styles/main';
 import rnStorage from '../services/rnStorage';
 import AppButton from '../components/Button';
 import AbstractScreen from '../AbstractScreen';
+import ImageInput from '../components/ImageInput';
 
 
 Notifications.setNotificationHandler({
@@ -244,6 +245,7 @@ export default class HomeScreen extends AbstractScreen {
         let child_view = (
             <View>
                 {server_status_list(obj_this.state.servers_list)}
+                <ImageInput />
                 <AppButton onPress={() => { obj_this.check_servers() }} title="Manually Check Servers" />
                 <Text selectable={true}>Token == {obj_this.state.expoToken || 'Obtaining token'}</Text>
                 <AppButton onPress={() => { obj_this.copyToken() }} title={obj_this.state.copyBtnLabel} />

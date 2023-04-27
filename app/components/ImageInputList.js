@@ -1,10 +1,10 @@
 import React, { useRef } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
-import ImageInput from "./ImageInput";
+import ImageInput from "./ImageInput_old";
 
 function ImageInputList({ imageUris = [], onRemoveImage, onAddImage }) {
     const scrollView = useRef();
-    
+
     return (
         <View>
         <ScrollView
