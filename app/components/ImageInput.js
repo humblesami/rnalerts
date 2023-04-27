@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     },
 });
 
-function ImageInput() {
+function ImageInput({ onChangeImage }) {
     const [pickedImages, setFilePath] = useState([]);
     const requestCameraPermission = async () => {
         if (Platform.OS === 'android') {
@@ -114,6 +114,7 @@ function ImageInput() {
             return;
         }
         response = response.assets ? response.assets : (response ? response: []);
+        onChangeImage(response);
         setFilePath(response);
     }
 
@@ -130,7 +131,7 @@ function ImageInput() {
     };
 
     function on_render(){
-        console.log('pickedImages => '+pickedImages.length);
+        // console.log('PickedImages => '+pickedImages.length);
     }
 
     return (

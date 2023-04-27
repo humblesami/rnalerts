@@ -100,7 +100,7 @@ export default class AbstractScreen extends React.Component {
         if (this.last_rendered) {
             obj_this.st_upd += 1;
             super.setState(values);
-            console.log('\n Pstate updates = ' + obj_this.st_upd + ' => ' + Date().substr(19, 5) + ' => ' + source);
+            //console.log('\n Pstate updates = ' + obj_this.st_upd + ' => ' + Date().substr(19, 5) + ' => ' + source);
             //console.log('\n Pstate updates = '+obj_this.st_upd+' => '+source, Date(), values);
         }
         else {
