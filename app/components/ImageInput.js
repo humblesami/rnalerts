@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
 });
 
 function ImageInput() {
-    const [filePath, setFilePath] = useState({});
+    const [pickedImages, setFilePath] = useState([]);
     const requestCameraPermission = async () => {
         if (Platform.OS === 'android') {
             try {
@@ -100,12 +100,6 @@ function ImageInput() {
     };
 
     const fetch_image = (response) =>{
-        if(response.assets){
-            response = response["assets"];
-        }
-        if(Array.isArray(response)){
-            response = response[0];
-        }
         if (response.didCancel) {
             alert('User cancelled camera picker');
             return;
@@ -119,6 +113,7 @@ function ImageInput() {
             alert(response.errorMessage);
             return;
         }
+        response = response.assets ? response.assets : (response ? response: []);
         setFilePath(response);
     }
 
@@ -134,34 +129,32 @@ function ImageInput() {
         });
     };
 
-    const preview_image = (filePath) => {
-        if(filePath.uri)
-        {
-            return(<Image source={{ uri: filePath.uri }} style={styles.imageStyle} />);
-        }
-        else{
-            if(filePath.data)
-            {
-                return(<Image source={{ uri: 'data:image/jpeg;base64,' + filePath.data }} style={styles.imageStyle} />);
-            }
-        }
+    function on_render(){
+        console.log('pickedImages => '+pickedImages.length);
     }
 
     return (
         <SafeAreaView style={{ flex: 1 }}>
             <View style={styles.container}>
-                {preview_image(filePath)}
-                <TouchableOpacity
-                    activeOpacity={0.5}
-                    style={styles.buttonStyle}
-                    onPress={() => captureImage('photo')}>
-                    <Text style={styles.textStyle}>Launch Camera for Image</Text>
-                </TouchableOpacity>
+                {on_render()}
                 <TouchableOpacity
                     activeOpacity={0.5}
                     style={styles.buttonStyle}
                     onPress={() => chooseFile('photo')}>
                     <Text style={styles.textStyle}>Choose Image</Text>
+                </TouchableOpacity>
+                <View>
+                    {
+                        pickedImages.map((item, kk) => (
+                            item.uri ? <Image source={{ uri: item.uri }} key={{kk}} style={styles.imageStyle} /> : (item.data ? <Image source={{ uri: 'data:image/jpeg;base64,' + filePath.data }} style={styles.imageStyle} /> : null)
+                        ))
+                    }
+                </View>
+                <TouchableOpacity
+                    activeOpacity={0.5}
+                    style={styles.buttonStyle}
+                    onPress={() => captureImage('photo')}>
+                    <Text style={styles.textStyle}>Launch Camera for Image</Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
