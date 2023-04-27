@@ -97,7 +97,6 @@ export default class HomeScreen extends AbstractScreen {
     }
 
     async submit_token(obtained_token) {
-        console.log('\nSubmitting Token => ' + obtained_token);
         if (!obtained_token) {
             alert('No token provided');
             return;
@@ -116,7 +115,8 @@ export default class HomeScreen extends AbstractScreen {
         obj_this.apiClient.on_api_error = function(error_message) {
             obj_this.showAlert('Warning', error_message);
         }
-        obj_this.apiClient.post_data(endpoint, { obtained_token: obtained_token });
+        console.log('\nSubmitting Token => ' + obtained_token);
+        obj_this.apiClient.post_data(endpoint, { posted_token: obtained_token });
     }
 
     async registerForPushNotificationsAsync() {
