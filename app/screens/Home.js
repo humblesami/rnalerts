@@ -58,6 +58,10 @@ export default class HomeScreen extends AbstractScreen {
             obj_this.hideLoader(activity_id);
         });
 
+        fetch('http://localhost:8000').then(res=>{
+            console.log('Status => '+ res.status);
+        });
+
         obj_this.pushListener = Notifications.addNotificationReceivedListener(notification => notification.request.content.categoryIdentifier);
         obj_this.resListener = Notifications.addNotificationResponseReceivedListener(response => response.notification.request.content);
         return () => {
@@ -112,6 +116,8 @@ export default class HomeScreen extends AbstractScreen {
             obj_this.setParentState({ subscriptions: res_data.channels, servers_list: res_data.servers_list}, 'render subscriptions');
             rnStorage.save('push_token', obtained_token).then(() => { });
             rnStorage.save('auth_token', res_data.auth_token).then(() => { });
+            obj_this.apiClient.header_tokens.auth_token.value = res_data.auth_token;
+            console.log(obj_this.apiClient.header_tokens.auth_token);
         }
         obj_this.apiClient.on_api_error = function(error_message) {
             obj_this.showAlert('Warning', error_message);
@@ -190,6 +196,7 @@ export default class HomeScreen extends AbstractScreen {
         });
         obj_this.apiClient.on_api_success = function (res_data) {
             let temp1 = 'Tried Server';
+            console.log(res_data);
             if (res_data.data) { temp1 = res_data.data; }
             obj_this.showAlert('Success', temp1);
         };

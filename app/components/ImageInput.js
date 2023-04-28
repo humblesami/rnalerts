@@ -14,12 +14,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         alignItems: 'center',
     },
-    titleText: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        paddingVertical: 20,
-    },
     textStyle: {
         padding: 10,
         color: 'black',
@@ -80,6 +74,37 @@ function ImageInput({ onChangeImage }) {
         } else return true;
     };
 
+    const fetch_image = (response) => {
+        if (response.didCancel) {
+            alert('User cancelled camera picker');
+            return;
+        } else if (response.errorCode == 'camera_unavailable') {
+            alert('Camera not available on device');
+            return;
+        } else if (response.errorCode == 'permission') {
+            alert('Permission not satisfied');
+            return;
+        } else if (response.errorCode == 'others') {
+            alert(response.errorMessage);
+            return;
+        }
+        response = response.assets ? response.assets : (response ? response : []);
+        onChangeImage(response);
+        setFilePath(response);
+    }
+
+    const chooseFile = (type) => {
+        let options = {
+            mediaType: type,
+            maxWidth: 300,
+            maxHeight: 550,
+            quality: 1,
+        };
+        launchImageLibrary(options, (response) => {
+            fetch_image(response);
+        });
+    };
+
     const captureImage = async (type) => {
         let options = {
             mediaType: type,
@@ -99,58 +124,25 @@ function ImageInput({ onChangeImage }) {
         }
     };
 
-    const fetch_image = (response) =>{
-        if (response.didCancel) {
-            alert('User cancelled camera picker');
-            return;
-        } else if (response.errorCode == 'camera_unavailable') {
-            alert('Camera not available on device');
-            return;
-        } else if (response.errorCode == 'permission') {
-            alert('Permission not satisfied');
-            return;
-        } else if (response.errorCode == 'others') {
-            alert(response.errorMessage);
-            return;
-        }
-        response = response.assets ? response.assets : (response ? response: []);
-        onChangeImage(response);
-        setFilePath(response);
-    }
-
-    const chooseFile = (type) => {
-        let options = {
-            mediaType: type,
-            maxWidth: 300,
-            maxHeight: 550,
-            quality: 1,
-        };
-        launchImageLibrary(options, (response) => {
-            fetch_image(response);
-        });
-    };
-
-    function on_render(){
-        // console.log('PickedImages => '+pickedImages.length);
-    }
-
     return (
         <SafeAreaView style={{ flex: 1 }}>
             <View style={styles.container}>
-                {on_render()}
+                {
+                    function(){}()
+                }
                 <TouchableOpacity
                     activeOpacity={0.5}
                     style={styles.buttonStyle}
                     onPress={() => chooseFile('photo')}>
                     <Text style={styles.textStyle}>Choose Image</Text>
                 </TouchableOpacity>
-                <View>
-                    {
-                        pickedImages.map((item, kk) => (
-                            item.uri ? <Image source={{ uri: item.uri }} key={{kk}} style={styles.imageStyle} /> : (item.data ? <Image source={{ uri: 'data:image/jpeg;base64,' + filePath.data }} style={styles.imageStyle} /> : null)
-                        ))
-                    }
-                </View>
+                <View>{
+                    pickedImages.map(function(item, kk) {
+                        item.uri ? <Image source={{ uri: item.uri }} key={{ kk }} style={styles.imageStyle} /> : (
+                            item.data ? <Image source={{ uri: 'data:image/jpeg;base64,' + filePath.data }} style={styles.imageStyle} /> : null
+                        )
+                    })
+                }</View>
                 <TouchableOpacity
                     activeOpacity={0.5}
                     style={styles.buttonStyle}
@@ -161,6 +153,5 @@ function ImageInput({ onChangeImage }) {
         </SafeAreaView>
     );
 };
-
 
 export default ImageInput;

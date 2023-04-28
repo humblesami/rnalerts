@@ -14,7 +14,7 @@ export default class AbstractScreen extends React.Component {
         this.last_rendered = '';
         let api_base_url = 'https://dap.92newshd.tv';
         api_base_url = 'http://127.0.0.1:8000';
-        this.apiClient = new restServerApi(api_base_url, 8, this);
+        this.apiClient = new restServerApi({token_type: 'auth', api_base_url: api_base_url, time_limit: 10});
         this.state = {
             loading: {},
             error_message: '',
