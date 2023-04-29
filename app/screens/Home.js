@@ -117,7 +117,6 @@ export default class HomeScreen extends AbstractScreen {
             rnStorage.save('push_token', obtained_token).then(() => { });
             rnStorage.save('auth_token', res_data.auth_token).then(() => { });
             obj_this.apiClient.header_tokens.auth_token.value = res_data.auth_token;
-            console.log(obj_this.apiClient.header_tokens.auth_token);
         }
         obj_this.apiClient.on_api_error = function(error_message) {
             obj_this.showAlert('Warning', error_message);
@@ -179,7 +178,7 @@ export default class HomeScreen extends AbstractScreen {
         }
     }
 
-    upload_images(im_list, body={}) {
+    upload_images(im_list) {
         let obj_this = this;
         const form_data = new FormData();
         let i = 0;
@@ -191,14 +190,14 @@ export default class HomeScreen extends AbstractScreen {
             });
             i++;
         }
-        Object.keys(body).forEach((key) => {
-            form_data.append(key, body[key]);
-        });
+        // Object.keys(body).forEach((key) => {
+        //     form_data.append(key, body[key]);
+        // });
         obj_this.apiClient.on_api_success = function (res_data) {
             let temp1 = 'Tried Server';
             console.log(res_data);
             if (res_data.data) { temp1 = res_data.data; }
-            obj_this.showAlert('Success', temp1);
+            //obj_this.showAlert('Success', temp1);
         };
         let endpoint = '/expo/test-upload';
         obj_this.apiClient.post_data(endpoint, form_data);
@@ -247,6 +246,8 @@ export default class HomeScreen extends AbstractScreen {
             )
         }
 
+
+        let btn_bgcolor = undefined;
         function render_notitifcation_sources(items_list, name) {
             return (
                 <View>
@@ -259,10 +260,14 @@ export default class HomeScreen extends AbstractScreen {
                             let title = "Subscribe => " + item.channel__name;
                             if (item.active) {
                                 title = "Unsubscribe => " + item.channel__name;
+                                btn_bgcolor = undefined;
+                            }
+                            else{
+                                btn_bgcolor = 'orange';
                             }
                             return (
                                 <View key={j}>
-                                    <AppButton title={title} onPress={() => {
+                                    <AppButton color={btn_bgcolor} title={title} onPress={() => {
                                         obj_this.toggleNotification(item.channel__name);
                                     }}/>
                                 </View>

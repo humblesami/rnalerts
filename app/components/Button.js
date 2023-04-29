@@ -6,7 +6,11 @@ import colors from "../config/colors";
 function AppButton({ title, onPress, color = undefined }) {
     let bg_color = {};
     if(color){
-        bg_color = { backgroundColor: colors[color] };
+        color = colors[color] || color;
+        bg_color = { backgroundColor: color };
+    }
+    else{
+        bg_color = { backgroundColor: colors.happy};
     }
     return (
         <TouchableOpacity
@@ -20,7 +24,6 @@ function AppButton({ title, onPress, color = undefined }) {
 
 const styles = StyleSheet.create({
     button: {
-        backgroundColor: colors.happy,
         borderRadius: 20,
         justifyContent: "center",
         alignItems: "center",

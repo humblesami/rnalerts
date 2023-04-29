@@ -89,8 +89,8 @@ function ImageInput({ onChangeImage }) {
             return;
         }
         response = response.assets ? response.assets : (response ? response : []);
-        onChangeImage(response);
         setFilePath(response);
+        onChangeImage(response);
     }
 
     const chooseFile = (type) => {
@@ -128,7 +128,9 @@ function ImageInput({ onChangeImage }) {
         <SafeAreaView style={{ flex: 1 }}>
             <View style={styles.container}>
                 {
-                    function(){}()
+                    function(){
+                        //console.log('Picked images => '+pickedImages.length, pickedImages);
+                    }()
                 }
                 <TouchableOpacity
                     activeOpacity={0.5}
@@ -138,8 +140,10 @@ function ImageInput({ onChangeImage }) {
                 </TouchableOpacity>
                 <View>{
                     pickedImages.map(function(item, kk) {
-                        item.uri ? <Image source={{ uri: item.uri }} key={{ kk }} style={styles.imageStyle} /> : (
-                            item.data ? <Image source={{ uri: 'data:image/jpeg;base64,' + filePath.data }} style={styles.imageStyle} /> : null
+                        return (
+                            item.uri ? <Image source={{ uri: item.uri }} key={{ kk }} style={styles.imageStyle} /> : (
+                                item.data ? <Image source={{ uri: 'data:image/jpeg;base64,' + filePath.data }} style={styles.imageStyle} /> : null
+                            )
                         )
                     })
                 }</View>
