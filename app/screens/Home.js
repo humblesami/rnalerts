@@ -117,11 +117,11 @@ export default class HomeScreen extends AbstractScreen {
             rnStorage.save('push_token', obtained_token).then(() => { });
             rnStorage.save('auth_token', res_data.auth_token).then(() => { });
             obj_this.apiClient.header_tokens.auth_token.value = res_data.auth_token;
+            console.log('Authorized with => ' + obtained_token);
         }
         obj_this.apiClient.on_api_error = function(error_message) {
             obj_this.showAlert('Warning', error_message);
         }
-        console.log('\nSubmitting Token => ' + obtained_token);
         obj_this.apiClient.post_data(endpoint, { posted_token: obtained_token });
     }
 
@@ -138,7 +138,7 @@ export default class HomeScreen extends AbstractScreen {
             return;
         }
         token = (await Notifications.getExpoPushTokenAsync()).data;
-        console.log('\n\tPlatForm => ' + Platform.OS);
+        console.log('PlatForm => ' + Platform.OS);
         if (Platform.OS === 'android') {
             Notifications.setNotificationChannelAsync('down_alerts', {
                 name: 'main',
