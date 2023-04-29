@@ -9,7 +9,6 @@ import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
         padding: 10,
         backgroundColor: '#fff',
         alignItems: 'center',
@@ -149,40 +148,38 @@ export default class ImageInput extends React.Component {
     render() {
         let obj_this = this;
         let image_list = obj_this.state.pickedImages;
-        return (
-            <SafeAreaView style={{ flex: 1 }}>
-                <View style={styles.container}>
-                    {
-                        function () {
-                            //console.log('Picked images => '+image_list.length, image_list);
-                        }()
-                    }
-                    <TouchableOpacity
-                        activeOpacity={0.5}
-                        style={styles.buttonStyle}
-                        onPress={() => obj_this.chooseFile('photo')}>
-                        <Text style={styles.textStyle}>Choose Image</Text>
-                    </TouchableOpacity>
-                    <View>{
-                        image_list.map(function (item, kk) {
-                            return (
-                                item.uri ? <Image source={{ uri: item.uri }} key={{ kk }} style={styles.imageStyle} /> : (
-                                    item.data ? <Image source={{ uri: 'data:image/jpeg;base64,' + filePath.data }} style={styles.imageStyle} /> : null
-                                )
+        return(
+            <View style={styles.container}>
+                {
+                    function () {
+                        //console.log('Picked images => '+image_list.length, image_list);
+                    }()
+                }
+                <TouchableOpacity
+                    activeOpacity={0.5}
+                    style={styles.buttonStyle}
+                    onPress={() => obj_this.chooseFile('photo')}>
+                    <Text style={styles.textStyle}>Choose Image</Text>
+                </TouchableOpacity>
+                <View>{
+                    image_list.map(function (item, kk) {
+                        return (
+                            item.uri ? <Image source={{ uri: item.uri }} key={{ kk }} style={styles.imageStyle} /> : (
+                                item.data ? <Image source={{ uri: 'data:image/jpeg;base64,' + filePath.data }} style={styles.imageStyle} /> : null
                             )
-                        })
-                    }</View>
-                    <View>
-                        <Text style={{color: 'red', fontWeight: 'bold'}}>{obj_this.state.error_message}</Text>
-                    </View>
-                    <TouchableOpacity
-                        activeOpacity={0.5}
-                        style={styles.buttonStyle}
-                        onPress={() => obj_this.captureImage('photo')}>
-                        <Text style={styles.textStyle}>Launch Camera for Image</Text>
-                    </TouchableOpacity>
+                        )
+                    })
+                }</View>
+                <View>
+                    <Text style={{color: 'red', fontWeight: 'bold'}}>{obj_this.state.error_message}</Text>
                 </View>
-            </SafeAreaView>
+                <TouchableOpacity
+                    activeOpacity={0.5}
+                    style={styles.buttonStyle}
+                    onPress={() => obj_this.captureImage('photo')}>
+                    <Text style={styles.textStyle}>Launch Camera for Image</Text>
+                </TouchableOpacity>
+            </View>
         );
     }
 }

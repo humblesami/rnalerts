@@ -8,6 +8,8 @@ import { View, Text, ActivityIndicator, ScrollView } from 'react-native';
 
 
 export default class AbstractScreen extends React.Component {
+    st_upd = 0;
+    first_render = 1;
     constructor() {
         super();
         this.error_list = [];
@@ -20,6 +22,16 @@ export default class AbstractScreen extends React.Component {
             error_message: '',
             alert_options : {shown: false, title: 'Main', message: 'Nothing'}
         };
+        let obj_this = this;
+        if(obj_this.first_render){
+            obj_this.first_render = 0;
+            obj_this.apiClient.just_before_api_request = function(endpoint, max_request_wait){
+                obj_this.showLoader(endpoint, max_request_wait);
+            }
+            obj_this.apiClient.on_api_complete = function(endpoint){
+                obj_this.hideLoader(endpoint, 'complete');
+            }
+        }
     }
 
     showAlert = (title, message) => {
@@ -30,10 +42,6 @@ export default class AbstractScreen extends React.Component {
         this.setParentState({alert_options: {shown: false}}, 'hide alert');
     };
 
-    on_api_request_init(endpoint, max_request_wait){
-        this.showLoader(endpoint, max_request_wait);
-    }
-
     on_api_failed(activity_id, message='Uknown Error') {
         let screen_object = this;
         //console.log('on api failed', activity_id, message);
@@ -42,18 +50,6 @@ export default class AbstractScreen extends React.Component {
             screen_object.error_list.push(error_activity);
             screen_object.state.error_message = screen_object.error_list.map(item => item.message).join('\n');
         }
-        screen_object.hideLoader(activity_id, 'error');
-    }
-
-    on_api_error(activity_id, message='Uknown Error') {
-        let screen_object = this;
-        console.log('on api error', activity_id, message);
-        let error_activity = { message: message, activity_id: activity_id };
-        if (!screen_object.error_list.find(x => x.message == message || x.activity_id == activity_id)) {
-            screen_object.error_list.push(error_activity);
-            screen_object.state.error_message = screen_object.error_list.map(item => item.message).join('\n');
-        }
-        screen_object.hideLoader(activity_id, 'error');
     }
 
     on_api_success(activity_id) {
@@ -67,12 +63,10 @@ export default class AbstractScreen extends React.Component {
             }
             i += 1;
         }
-        screen_object.hideLoader(activity_id, 'success');
     }
 
-    hideLoader(activity_id, event_type='Unknown') {
+    hideLoader(activity_id) {
         delete this.state.loading[activity_id];
-        //console.log('hide loader ', activity_id, event_type);
         if (!Object.keys(this.state.loading).length) {
             this.setParentState({}, 'complete ' + activity_id);
         }
@@ -86,15 +80,14 @@ export default class AbstractScreen extends React.Component {
         }
         setTimeout(() => {
             if (obj_this.state.loading[activity_id]) {
-                let message = 'Removed loader ' + activity_id + ' after waiting ' + obj_this.max_request_wait + ' seconds';
-                message += ' Service timed out ' + (obj_this.max_request_wait - obj_this.apiClient.fetch_timeout) + ' seconds ago';
+                let message = 'Removed loader\n' + activity_id + '\n after waiting ' + time_limit + ' seconds';
+                message += ' Service timed out ' + (time_limit - obj_this.apiClient.fetch_timeout) + ' seconds ago';
                 alert(message);
                 obj_this.hideLoader(activity_id);
             }
         }, (time_limit * 1000) + 1000);
     }
 
-    st_upd = 0;
     setParentState(values, source = 'unknown') {
         let obj_this = this;
         if (this.last_rendered) {
@@ -124,7 +117,6 @@ export default class AbstractScreen extends React.Component {
         }
     }
 
-
     render_in_parent(child_view) {
         let obj_this = this;
         obj_this.last_rendered = new Date();
@@ -141,9 +133,12 @@ export default class AbstractScreen extends React.Component {
         function show_activity_indicator() {
             if (Object.keys(obj_this.state.loading).length) {
                 return (
-                    <View style={styles.loader}>
-                        <ActivityIndicator color="orange" size="large" />
+                    <View style={{flex:1, alignItems: 'center', position: 'absolute', top: 0, left: 0}}>
+                        <View style={[{height: 400, width:100, position: 'absolute', top: 0, left: 0}]}>
+                            <ActivityIndicator color="orange" size="large" />
+                        </View>
                     </View>
+
                 );
             }
         }
@@ -184,7 +179,7 @@ export default class AbstractScreen extends React.Component {
         }
 
         return (
-            <ScrollView style={styles.main_container}>
+            <ScrollView style={{padding: 10}}>
                 {get_base_items()}
                 {child_view}
                 <AppButton onPress={() => { obj_this.componentDidMount() }} title="Refresh Now" />

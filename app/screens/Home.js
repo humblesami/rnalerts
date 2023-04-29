@@ -58,10 +58,6 @@ export default class HomeScreen extends AbstractScreen {
             obj_this.hideLoader(activity_id);
         });
 
-        fetch('http://localhost:8000').then(res=>{
-            console.log('Status => '+ res.status);
-        });
-
         obj_this.pushListener = Notifications.addNotificationReceivedListener(notification => notification.request.content.categoryIdentifier);
         obj_this.resListener = Notifications.addNotificationResponseReceivedListener(response => response.notification.request.content);
         return () => {
@@ -96,7 +92,7 @@ export default class HomeScreen extends AbstractScreen {
         obj_this.apiClient.on_api_success = function(res_data) {
             let temp1 = 'subscribed';
             if(!res_data.active){ temp1 = 'unsubscribed'; }
-            obj_this.showAlert('Success', temp1);
+            //obj_this.showAlert('Success', temp1);
         }
         obj_this.apiClient.post_data(endpoint, data);
     }

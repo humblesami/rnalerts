@@ -6,7 +6,8 @@ export default styles = StyleSheet.create({
         padding: 10
     },
     main_container: {
-        padding: 10
+        padding: 10,
+        flex: 1,
     },
     popup_container: {
         padding: 40,
@@ -28,7 +29,7 @@ export default styles = StyleSheet.create({
         position: 'absolute',
         left: 0,
         right: 0,
-        top: 0,
+        top: 20,
         bottom: 0,
         zIndex: 3,
         elevation: 3,
