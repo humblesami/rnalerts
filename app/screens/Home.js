@@ -193,7 +193,7 @@ export default class HomeScreen extends AbstractScreen {
         // Object.keys(body).forEach((key) => {
         //     form_data.append(key, body[key]);
         // });
-        obj_this.apiClient.on_api_success = after_upload;
+        obj_this.apiClient.on_api_success = function(res_data){ after_upload(res_data, im_list) };
         obj_this.apiClient.on_api_failed = after_upload;
         let endpoint = '/expo/test-upload';
         obj_this.apiClient.post_data(endpoint, form_data);

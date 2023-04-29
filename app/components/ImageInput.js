@@ -96,18 +96,18 @@ export default class ImageInput extends React.Component {
             return;
         }
         let chosenImages = response.assets ? response.assets : (response ? response : []);
-        this.props.onChangeImage(chosenImages, function(res_data){
-            obj_this.after_upload(res_data, chosenImages);
+        this.props.onChangeImage(chosenImages, function(api_data, chosenImages=[]){
+            obj_this.after_upload(api_data, chosenImages);
         });
     }
 
-    after_upload(res_data, chosenImages){
-        if(res_data.done)
+    after_upload(api_data, chosenImages=[]){
+        if(api_data.done)
         {
             this.setState({error_message: '', pickedImages: chosenImages});
         }
         else{
-            let em = res_data.error || res_data.message;
+            let em = api_data.error || api_data.message;
             em  = em || 'Some error in upload';
             this.setState({error_message: em, pickedImages: []});
         }
