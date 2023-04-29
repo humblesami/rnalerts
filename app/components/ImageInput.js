@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
     SafeAreaView, StyleSheet, Text, View, TouchableOpacity,
     Image, Platform, PermissionsAndroid,
@@ -33,9 +33,15 @@ const styles = StyleSheet.create({
     },
 });
 
-function ImageInput({ onChangeImage }) {
-    const [pickedImages, setFilePath] = useState([]);
-    const requestCameraPermission = async () => {
+export default class ImageInput extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            error_message: '',
+            pickedImages: []
+        };
+    }
+    async requestCameraPermission() {
         if (Platform.OS === 'android') {
             try {
                 const granted = await PermissionsAndroid.request(
@@ -54,7 +60,7 @@ function ImageInput({ onChangeImage }) {
         } else return true;
     };
 
-    const requestExternalWritePermission = async () => {
+    async requestExternalWritePermission() {
         if (Platform.OS === 'android') {
             try {
                 const granted = await PermissionsAndroid.request(
@@ -74,7 +80,8 @@ function ImageInput({ onChangeImage }) {
         } else return true;
     };
 
-    const fetch_image = (response) => {
+    fetch_image(response) {
+        let obj_this = this;
         if (response.didCancel) {
             alert('User cancelled camera picker');
             return;
@@ -88,12 +95,26 @@ function ImageInput({ onChangeImage }) {
             alert(response.errorMessage);
             return;
         }
-        response = response.assets ? response.assets : (response ? response : []);
-        setFilePath(response);
-        onChangeImage(response);
+        let chosenImages = response.assets ? response.assets : (response ? response : []);
+        this.props.onChangeImage(chosenImages, function(res_data){
+            obj_this.after_upload(res_data, chosenImages);
+        });
     }
 
-    const chooseFile = (type) => {
+    after_upload(res_data, chosenImages){
+        if(res_data.done)
+        {
+            this.setState({error_message: '', pickedImages: chosenImages});
+        }
+        else{
+            let em = res_data.error || res_data.message;
+            em  = em || 'Some error in upload';
+            this.setState({error_message: em, pickedImages: []});
+        }
+    }
+
+    chooseFile(type) {
+        let obj_this = this;
         let options = {
             mediaType: type,
             maxWidth: 300,
@@ -101,11 +122,12 @@ function ImageInput({ onChangeImage }) {
             quality: 1,
         };
         launchImageLibrary(options, (response) => {
-            fetch_image(response);
+            obj_this.fetch_image(response);
         });
     };
 
-    const captureImage = async (type) => {
+    async captureImage(type) {
+        let obj_this = this;
         let options = {
             mediaType: type,
             maxWidth: 300,
@@ -115,47 +137,52 @@ function ImageInput({ onChangeImage }) {
             durationLimit: 30, //Video max duration in seconds
             saveToPhotos: true,
         };
-        let isCameraPermitted = await requestCameraPermission();
-        let isStoragePermitted = await requestExternalWritePermission();
+        let isCameraPermitted = await obj_this.requestCameraPermission();
+        let isStoragePermitted = await obj_this.requestExternalWritePermission();
         if (isCameraPermitted && isStoragePermitted) {
             launchCamera(options, (response) => {
-                fetch_image(response);
+                obj_this.fetch_image(response);
             });
         }
     };
 
-    return (
-        <SafeAreaView style={{ flex: 1 }}>
-            <View style={styles.container}>
-                {
-                    function(){
-                        //console.log('Picked images => '+pickedImages.length, pickedImages);
-                    }()
-                }
-                <TouchableOpacity
-                    activeOpacity={0.5}
-                    style={styles.buttonStyle}
-                    onPress={() => chooseFile('photo')}>
-                    <Text style={styles.textStyle}>Choose Image</Text>
-                </TouchableOpacity>
-                <View>{
-                    pickedImages.map(function(item, kk) {
-                        return (
-                            item.uri ? <Image source={{ uri: item.uri }} key={{ kk }} style={styles.imageStyle} /> : (
-                                item.data ? <Image source={{ uri: 'data:image/jpeg;base64,' + filePath.data }} style={styles.imageStyle} /> : null
+    render() {
+        let obj_this = this;
+        let image_list = obj_this.state.pickedImages;
+        return (
+            <SafeAreaView style={{ flex: 1 }}>
+                <View style={styles.container}>
+                    {
+                        function () {
+                            //console.log('Picked images => '+image_list.length, image_list);
+                        }()
+                    }
+                    <TouchableOpacity
+                        activeOpacity={0.5}
+                        style={styles.buttonStyle}
+                        onPress={() => obj_this.chooseFile('photo')}>
+                        <Text style={styles.textStyle}>Choose Image</Text>
+                    </TouchableOpacity>
+                    <View>{
+                        image_list.map(function (item, kk) {
+                            return (
+                                item.uri ? <Image source={{ uri: item.uri }} key={{ kk }} style={styles.imageStyle} /> : (
+                                    item.data ? <Image source={{ uri: 'data:image/jpeg;base64,' + filePath.data }} style={styles.imageStyle} /> : null
+                                )
                             )
-                        )
-                    })
-                }</View>
-                <TouchableOpacity
-                    activeOpacity={0.5}
-                    style={styles.buttonStyle}
-                    onPress={() => captureImage('photo')}>
-                    <Text style={styles.textStyle}>Launch Camera for Image</Text>
-                </TouchableOpacity>
-            </View>
-        </SafeAreaView>
-    );
-};
-
-export default ImageInput;
+                        })
+                    }</View>
+                    <View>
+                        <Text style={{color: 'red', fontWeight: 'bold'}}>{obj_this.state.error_message}</Text>
+                    </View>
+                    <TouchableOpacity
+                        activeOpacity={0.5}
+                        style={styles.buttonStyle}
+                        onPress={() => obj_this.captureImage('photo')}>
+                        <Text style={styles.textStyle}>Launch Camera for Image</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
+}

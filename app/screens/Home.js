@@ -178,7 +178,7 @@ export default class HomeScreen extends AbstractScreen {
         }
     }
 
-    upload_images(im_list) {
+    upload_images(im_list, after_upload) {
         let obj_this = this;
         const form_data = new FormData();
         let i = 0;
@@ -193,12 +193,8 @@ export default class HomeScreen extends AbstractScreen {
         // Object.keys(body).forEach((key) => {
         //     form_data.append(key, body[key]);
         // });
-        obj_this.apiClient.on_api_success = function (res_data) {
-            let temp1 = 'Tried Server';
-            console.log(res_data);
-            if (res_data.data) { temp1 = res_data.data; }
-            //obj_this.showAlert('Success', temp1);
-        };
+        obj_this.apiClient.on_api_success = after_upload;
+        obj_this.apiClient.on_api_failed = after_upload;
         let endpoint = '/expo/test-upload';
         obj_this.apiClient.post_data(endpoint, form_data);
     }
@@ -281,7 +277,7 @@ export default class HomeScreen extends AbstractScreen {
         let child_view = (
             <View>
                 {server_status_list(obj_this.state.servers_list)}
-                <ImageInput onChangeImage={(images) => { obj_this.upload_images(images) }} />
+                <ImageInput onChangeImage={(images, after_upload) => { obj_this.upload_images(images, after_upload) }} />
                 <AppButton onPress={() => { obj_this.check_servers() }} title="Manually Check Servers" />
                 <Text selectable={true}>Token == {obj_this.state.expoToken || 'Obtaining token'}</Text>
                 <AppButton onPress={() => { obj_this.copyToken() }} title={obj_this.state.copyBtnLabel} />
