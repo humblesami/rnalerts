@@ -167,23 +167,18 @@ export default class AbstractScreen extends React.Component {
             );
         }
 
-        function get_base_items() {
-            let res = (
+        return (
+            <View>
                 <View>
                     {show_activity_indicator()}
                     {alert_dom()}
                     {show_errors()}
                 </View>
-            );
-            return res;
-        }
-
-        return (
-            <ScrollView style={{padding: 10}}>
-                {get_base_items()}
-                {child_view}
-                <AppButton onPress={() => { obj_this.componentDidMount() }} title="Refresh Now" />
-            </ScrollView>
+                <ScrollView style={{padding: 10}}>
+                    {child_view}
+                    <AppButton onPress={() => { obj_this.componentDidMount() }} title="Refresh Now" />
+                </ScrollView>
+            </View>
         );
     }
 }
