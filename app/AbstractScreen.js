@@ -133,12 +133,9 @@ export default class AbstractScreen extends React.Component {
         function show_activity_indicator() {
             if (Object.keys(obj_this.state.loading).length) {
                 return (
-                    <View style={{flex:1, alignItems: 'center', position: 'absolute', top: 0, left: 0}}>
-                        <View style={[{height: 400, width:100, position: 'absolute', top: 0, left: 0}]}>
-                            <ActivityIndicator color="orange" size="large" />
-                        </View>
+                    <View style={{alignItems: 'center', width:'100%', zIndex:5, position: 'absolute', top: 0, left: 0}}>
+                        <ActivityIndicator style={[{top: 100}]} color="green" size="large" />
                     </View>
-
                 );
             }
         }

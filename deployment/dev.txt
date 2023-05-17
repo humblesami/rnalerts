@@ -1,0 +1,7 @@
+yarn install
+adb reverse tcp:8000 tcp:8000
+
+npx react-native run-android
+#npm run android
+npx react-native start
+react-native start --reset-cache
