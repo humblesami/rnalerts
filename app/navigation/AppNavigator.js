@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import AboutScreen from '../screens/About';
 import ConnectScreen from '../screens/Connect';
+import ServerInfoScreen from '../screens/ServerInfo';
 
 
 const Tab = createBottomTabNavigator();
@@ -21,12 +22,14 @@ export default function AppWithBottomTabs() {
         return res_options;
     }
 
-    let option1 = get_option('Home', 'home');
-    let option2 = get_option('About', 'bell');
+    let option1 = get_option('Connect', 'home');
+    let option2 = get_option('Servers', 'home');
+    let option3 = get_option('About', 'bell');
     return (
         <Tab.Navigator initialRouteName="Feed" screenOptions={{ tabBarActiveTintColor: '#e91e63', }}>
-            <Tab.Screen name="Home" component={ConnectScreen} options={option1} />
-            <Tab.Screen name="About" component={AboutScreen} options={{option2}} />
+            <Tab.Screen name="Servers" component={ServerInfoScreen} options={option2} />
+            <Tab.Screen name="Baloch" component={ConnectScreen} options={option1} />
+            <Tab.Screen name="About" component={AboutScreen} options={{option3}} />
         </Tab.Navigator>
     );
 }

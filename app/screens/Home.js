@@ -199,7 +199,7 @@ export default class HomeScreen extends AbstractScreen {
         let obj_this = this;
         obj_this.last_rendered = new Date();
 
-        function server_status_list(items_list) {
+        function server_status_list(list_items) {
             function get_item_style(status, item_url) {
                 if (!status) {
                     console.log('\nNo status for ' + item_url);
@@ -224,7 +224,7 @@ export default class HomeScreen extends AbstractScreen {
                     </Text>
                     <ScrollView>
                         {
-                            items_list.map(function (item, j) {
+                            list_items.map(function (item, j) {
                                 return (
                                     <View style={get_item_style(item.status)} key={j}>
                                         <Text>{item.name}</Text>
@@ -240,7 +240,7 @@ export default class HomeScreen extends AbstractScreen {
 
 
         let btn_bgcolor = undefined;
-        function render_notitifcation_sources(items_list, name) {
+        function render_notitifcation_sources(list_items, name) {
             return (
                 <View>
                     <View>
@@ -248,7 +248,7 @@ export default class HomeScreen extends AbstractScreen {
                     </View>
                     <View>
                     {
-                        items_list.map(function (item, j) {
+                        list_items.map(function (item, j) {
                             let title = "Subscribe => " + item.channel__name;
                             if (item.active) {
                                 title = "Unsubscribe => " + item.channel__name;

@@ -18,8 +18,8 @@ Notifications.setNotificationHandler({
 });
 
 export default class ConnectScreen extends AbstractScreen {
-    constructor() {
-        super();
+    constructor(api_base_url) {
+        super(api_base_url);
         this.resListener = {};
         this.pushListener = {};
         let home_state = {
@@ -98,22 +98,27 @@ export default class ConnectScreen extends AbstractScreen {
             return;
         }
         let obj_this = this;
-        let endpoint = '/ens/submit';
-        obj_this.apiClient.on_api_success = function(res_data) {
-            let warn_message = 'No active channels found';
-            if (!res_data.channels.length) {
-                obj_this.showAlert('Warning', warn_message);
-            }
-            obj_this.setParentState({ subscriptions: res_data.channels}, 'render subscriptions');
-            rnStorage.save('push_token', obtained_token).then(() => { });
-            rnStorage.save('auth_token', res_data.auth_token).then(() => { });
-            obj_this.apiClient.header_tokens.auth_token.value = res_data.auth_token;
-            console.log('Authorized with => ' + obtained_token);
-        }
+        let endpoint = '/expo/submit';
+        obj_this.apiClient.on_api_success = function(res_data){
+            obj_this.onTokenSubmitted(res_data, obtained_token);
+        };
         obj_this.apiClient.on_api_error = function(error_message) {
             obj_this.showAlert('Warning', error_message);
         }
         obj_this.apiClient.post_data(endpoint, { posted_token: obtained_token });
+    }
+
+    onTokenSubmitted(res_data, obtained_token){
+        let obj_this = this;
+        let warn_message = 'No active channels found';
+        if (!res_data.channels.length) {
+            obj_this.showAlert('Warning', warn_message);
+        }
+        obj_this.setParentState({ subscriptions: res_data.channels}, 'render subscriptions');
+        rnStorage.save('push_token', obtained_token).then(() => { });
+        rnStorage.save('auth_token', res_data.auth_token).then(() => { });
+        obj_this.apiClient.header_tokens.auth_token.value = res_data.auth_token;
+        console.log('Authorized with => ' + obtained_token);
     }
 
     async registerForPushNotificationsAsync() {
@@ -163,7 +168,7 @@ export default class ConnectScreen extends AbstractScreen {
     }
 
 
-    render_items_list(items_list) {
+    render_items_list(list_items) {
         function get_item_style(status, item_url) {
             if (!status) {
                 console.log('\nNo status for ' + item_url);
@@ -188,7 +193,7 @@ export default class ConnectScreen extends AbstractScreen {
                 </Text>
                 <ScrollView>
                     {
-                        items_list.map(function (item, j) {
+                        list_items.map(function (item, j) {
                             return (
                                 <View style={get_item_style(item.status)} key={j}>
                                     <Text>{item.name}</Text>
@@ -207,7 +212,7 @@ export default class ConnectScreen extends AbstractScreen {
         obj_this.last_rendered = new Date();
 
         let btn_bgcolor = undefined;
-        function render_notitifcation_sources(items_list, name) {
+        function render_notitifcation_sources(list_items, name) {
             return (
                 <View>
                     <View>
@@ -215,7 +220,7 @@ export default class ConnectScreen extends AbstractScreen {
                     </View>
                     <View>
                     {
-                        items_list.map(function (item, j) {
+                        list_items.map(function (item, j) {
                             let title = "Subscribe => " + item.channel__name;
                             if (item.active) {
                                 title = "Unsubscribe => " + item.channel__name;
@@ -240,7 +245,7 @@ export default class ConnectScreen extends AbstractScreen {
         let child_view = (
             <View>
                 <ImageInput onChangeImage={(images, after_upload) => { obj_this.upload_images(images, after_upload) }} />
-                <Text selectable={true}>Token == {obj_this.state.expoToken || 'Obtaining token'}</Text>
+                <Text selectable={true}>Obtained Token: {obj_this.state.expoToken || 'Obtaining token'}</Text>
                 <AppButton onPress={() => { obj_this.copyToken() }} title={obj_this.state.copyBtnLabel} />
                 {render_notitifcation_sources(obj_this.state.subscriptions, 'Subscriptions')}
             </View>
