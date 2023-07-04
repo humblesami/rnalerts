@@ -25,12 +25,11 @@ export default class ServerInfoScreen extends ConnectScreen {
         obj_this.apiClient.on_api_success = function(res_data){
             obj_this.onTokenSubmitted(res_data);
         };
-        super.submit_token(obtained_token);
+        super.submit_token(obtained_token, '/servers/submit');
     }
 
     onTokenSubmitted(res_data, obtained_token){
         super.onTokenSubmitted(res_data, obtained_token);
-        console.log(6677, res_data);
         let updated_list = res_data.servers_list || [];
         this.setParentState({ subscriptions: res_data.channels, servers_list: updated_list}, 'render subscriptions');
     }
@@ -136,7 +135,6 @@ export default class ServerInfoScreen extends ConnectScreen {
                 </View>
             );
         }
-        console.log(44555, obj_this.state.servers_list);
         let child_view = (
             <View>
                 {set_server_status_list(obj_this.state.servers_list)}

@@ -92,13 +92,13 @@ export default class ConnectScreen extends AbstractScreen {
         obj_this.apiClient.post_data(endpoint, data);
     }
 
-    async submit_token(obtained_token) {
+    async submit_token(obtained_token, endpoint='') {
         if (!obtained_token) {
             alert('No token provided');
             return;
         }
         let obj_this = this;
-        let endpoint = '/expo/submit';
+        if (!endpoint) endpoint = '/expo/submit';
         obj_this.apiClient.on_api_success = function(res_data){
             obj_this.onTokenSubmitted(res_data, obtained_token);
         };
