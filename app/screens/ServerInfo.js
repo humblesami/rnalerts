@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Clipboard, ScrollView } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 
 import styles from '../styles/main';
 import AppButton from '../components/Button';
@@ -38,12 +38,13 @@ export default class ServerInfoScreen extends ConnectScreen {
         let obj_this = this;
         let endpoint = '/servers/check-only';
         let res_list = obj_this.state.servers_list;
-        obj_this.apiClient.on_api_success = function(res_data){
+        let api_client = this.create_api_request();
+        api_client.on_api_success = function(res_data){
             res_data.responses.map(item=>{ res_list.find(x => x.check_path == item.server.check_path).status = item.status});
             this.state.servers_list = res_list;
             obj_this.showAlert('Success', 'Servers status checked and updated');
         }
-        obj_this.apiClient.get_data(endpoint);
+        api_client.get_data(endpoint);
     }
 
     async check_servers_client() {

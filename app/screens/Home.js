@@ -66,9 +66,6 @@ export default class HomeScreen extends AbstractScreen {
         };
     }
 
-    run_bg_process() {
-    }
-
     copyToken() {
         let obj_this = this;
         Clipboard.setString(obj_this.state.expoToken);
@@ -79,22 +76,19 @@ export default class HomeScreen extends AbstractScreen {
         SoundPlayer.playSoundFile('beep', 'mp3');
     }
 
-    async sendNotification() {
-
-    }
-
     async toggleNotification(notification_source) {
         let obj_this = this;
         let item = obj_this.state.subscriptions.find((x) => x.channel__name == notification_source);
         item.active = !item.active;
         let endpoint = '/expo/toggle';
         let data = {channel: notification_source, push_token: obj_this.state.expoToken};
-        obj_this.apiClient.on_api_success = function(res_data) {
+        let api_client = this.create_api_request();
+        api_client.on_api_success = function(res_data) {
             let temp1 = 'subscribed';
             if(!res_data.active){ temp1 = 'unsubscribed'; }
             //obj_this.showAlert('Success', temp1);
         }
-        obj_this.apiClient.post_data(endpoint, data);
+        api_client.post_data(endpoint, data);
     }
 
     async submit_token(obtained_token) {
@@ -104,7 +98,9 @@ export default class HomeScreen extends AbstractScreen {
         }
         let obj_this = this;
         let endpoint = '/servers/submit';
-        obj_this.apiClient.on_api_success = function(res_data) {
+        let api_client = this.create_api_request();
+        api_client.on_api_success = function(res_data) {
+            obj_this.site_tokens[api_client.api_server_url].auth_token = res_data.auth_token;
             let warn_message = 'No active channels found';
             if (!res_data.channels.length) {
                 obj_this.showAlert('Warning', warn_message);
@@ -112,13 +108,12 @@ export default class HomeScreen extends AbstractScreen {
             obj_this.setParentState({ subscriptions: res_data.channels, servers_list: res_data.servers_list}, 'render subscriptions');
             rnStorage.save('push_token', obtained_token).then(() => { });
             rnStorage.save('auth_token', res_data.auth_token).then(() => { });
-            obj_this.apiClient.header_tokens.auth_token.value = res_data.auth_token;
             console.log('Authorized with => ' + obtained_token);
         }
-        obj_this.apiClient.on_api_error = function(error_message) {
+        api_client.on_api_error = function(error_message) {
             obj_this.showAlert('Warning', error_message);
         }
-        obj_this.apiClient.post_data(endpoint, { posted_token: obtained_token });
+        api_client.post_data(endpoint, { posted_token: obtained_token });
     }
 
     async registerForPushNotificationsAsync() {
@@ -151,12 +146,13 @@ export default class HomeScreen extends AbstractScreen {
         let obj_this = this;
         let endpoint = '/servers/check-only';
         let res_list = obj_this.state.servers_list;
-        obj_this.apiClient.on_api_success = function(res_data){
+        let api_client = this.create_api_request();
+        api_client.on_api_success = function(res_data){
             res_data.responses.map(item=>{ res_list.find(x => x.check_path == item.server.check_path).status = item.status});
             this.state.servers_list = res_list;
             obj_this.showAlert('Success', 'Servers status checked and updated');
         }
-        obj_this.apiClient.get_data(endpoint);
+        api_client.get_data(endpoint);
     }
 
     async check_servers_client() {
@@ -186,13 +182,11 @@ export default class HomeScreen extends AbstractScreen {
             });
             i++;
         }
-        // Object.keys(body).forEach((key) => {
-        //     form_data.append(key, body[key]);
-        // });
-        obj_this.apiClient.on_api_success = function(res_data){ after_upload(res_data, im_list) };
-        obj_this.apiClient.on_api_failed = after_upload;
+        let api_client = this.create_api_request();
+        api_client.on_api_success = function(res_data){ after_upload(res_data, im_list) };
+        api_client.on_api_failed = after_upload;
         let endpoint = '/expo/test-upload';
-        obj_this.apiClient.post_data(endpoint, form_data);
+        api_client.post_data(endpoint, form_data);
     }
 
     render() {

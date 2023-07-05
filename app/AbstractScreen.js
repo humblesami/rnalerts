@@ -14,24 +14,55 @@ export default class AbstractScreen extends React.Component {
         super();
         this.error_list = [];
         this.last_rendered = '';
-        //api_base_url = 'http://127.0.0.1:8000/epaper';
-        this.apiClient = new restServerApi({token_type: 'auth', api_base_url: api_base_url, time_limit: 10});
+        this.api_base_url = api_base_url;
         this.state = {
             loading: {},
             api_base_url: api_base_url,
             error_message: '',
             alert_options : {shown: false, title: 'Main', message: 'Nothing'}
         };
-        let obj_this = this;
-        if(obj_this.first_render){
-            obj_this.first_render = 0;
-            obj_this.apiClient.just_before_api_request = function(endpoint, max_request_wait){
-                obj_this.showLoader(endpoint, max_request_wait);
-            }
-            obj_this.apiClient.on_api_complete = function(endpoint){
-                obj_this.hideLoader(endpoint, 'complete');
-            }
+        if(this.first_render){
+            this.first_render = 0;
         }
+    }
+
+    site_tokens = {};
+
+    create_api_request(options={}){
+        let obj_this = this;
+        if(!options.token_type) options.token_type = 'auth';
+        let header_tokens = {token_type: options.token_type};
+        let api_tokens = this.site_tokens[options.api_base_url];
+        header_tokens.auth_token = options.auth_token || {
+            key: 'Authorization',
+            prefix: 'Token ',
+            value: '',
+        }
+        header_tokens.csrf = options.csrf || {
+            key: 'X-CSRFToken',
+            input: 'csrfmiddlewaretoken',
+            value: '',
+        }
+        if(api_tokens) header_tokens.csrf.value = api_tokens.csrf || '';
+        if(api_tokens) header_tokens.auth_token.value = api_tokens.auth_token || '';
+
+
+        if (!options.api_base_url) options.api_base_url = this.api_base_url;
+        if(!this.site_tokens[this.api_base_url]) {this.site_tokens[this.api_base_url] = {}}
+        else {
+            header_tokens.csrf.value = this.site_tokens[this.api_base_url].csrf;
+            header_tokens.auth_token.value = this.site_tokens[this.api_base_url].auth_token;
+        }
+        options.header_tokens = header_tokens;
+
+        let api_client = new restServerApi(options);
+        api_client.just_before_api_request = function(endpoint, max_request_wait){
+            obj_this.showLoader(endpoint, max_request_wait);
+        }
+        api_client.on_api_complete = function(endpoint){
+            obj_this.hideLoader(endpoint, 'complete');
+        }
+        return api_client;
     }
 
     showAlert = (title, message) => {
