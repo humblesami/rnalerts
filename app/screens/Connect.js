@@ -38,32 +38,74 @@ export default class ConnectScreen extends AbstractScreen {
         this.st_upd = 0;
         let activity_id = '/device/register';
         this.showLoader(activity_id, 5);
-        this.registerForPushNotificationsAsync().then(pushToken => {
-            if (!pushToken) {
-                pushToken = 'Got no token';
-            }
-            obj_this.state.expoToken = pushToken;
-            obj_this.hideLoader(activity_id);
-            if (pushToken != 'Got no token') {
-                obj_this.submit_token(pushToken);
-            }
-        }).catch(er8 => {
-            obj_this.state.expoToken = '' + er8;
-            obj_this.hideLoader(activity_id);
-        });
+
+        let pushToken = await this.registerForPushNotificationsAsync();
+
+        if (!pushToken) {
+            pushToken = 'Got no token';
+        }
+        obj_this.state.expoToken = pushToken;
+        obj_this.hideLoader(activity_id);
+        if (pushToken != 'Got no token') {
+            obj_this.submit_token(pushToken);
+        }
 
         this.pushListener = Notifications.addNotificationReceivedListener(notification => {
             const { data, body } = notification.request.content;
-            console.log(data, body);
+            console.log('Notification received', body);
             //SoundPlayer.playSoundFile('beep', 'mp3');
             return notification.request.content.categoryIdentifier;
         });
         this.resListener = Notifications.addNotificationResponseReceivedListener(response => response.notification.request.content);
+
+        this.test_notifications();
+
         return () => {
             Notifications.removeNotificationSubscription(obj_this.pushListener);
             Notifications.removeNotificationSubscription(obj_this.resListener);
         };
     }
+
+    test_notifications(){
+        Notifications.scheduleNotificationAsync({
+            content: {
+                title: "You've got mail!",
+                body: 'Open the notification to read them all',
+                sound: 'beep.mp3', // <- for Android below 8.0
+            },
+            trigger: {
+                seconds: 2,
+                channelId: 'down_alerts',
+            },
+        });
+    }
+
+    async registerForPushNotificationsAsync() {
+        let token;
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== 'granted') {
+            const { status } = await Notifications.requestPermissionsAsync();
+            finalStatus = status;
+        }
+        if (finalStatus !== 'granted') {
+            alert('Notification access is not granted!');
+            return;
+        }
+        token = (await Notifications.getExpoPushTokenAsync()).data;
+        console.log('Choosen PlatForm => ' + Platform.OS);
+        if (Platform.OS === 'android') {
+            Notifications.setNotificationChannelAsync('down_alerts', {
+                name: 'main',
+                sound: 'beep.mp3',
+                importance: Notifications.AndroidImportance.MAX,
+                vibrationPattern: [0, 250, 250, 250],
+                lightColor: '#FF231F7C',
+            });
+        }
+        return token;
+    }
+
 
     copyToken() {
         Clipboard.setString(this.state.expoToken);
@@ -115,32 +157,6 @@ export default class ConnectScreen extends AbstractScreen {
         rnStorage.save('push_token', obtained_token).then(() => { });
         rnStorage.save('auth_token', res_data.auth_token).then(() => { });
         console.log('Authorized with => ' + obtained_token);
-    }
-
-    async registerForPushNotificationsAsync() {
-        let token;
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
-        if (existingStatus !== 'granted') {
-            const { status } = await Notifications.requestPermissionsAsync();
-            finalStatus = status;
-        }
-        if (finalStatus !== 'granted') {
-            alert('Notification access is not granted!');
-            return;
-        }
-        token = (await Notifications.getExpoPushTokenAsync()).data;
-        console.log('PlatForm => ' + Platform.OS);
-        if (Platform.OS === 'android') {
-            Notifications.setNotificationChannelAsync('down_alerts', {
-                name: 'main',
-                sound: 'beep.mp3',
-                importance: Notifications.AndroidImportance.MAX,
-                vibrationPattern: [0, 250, 250, 250],
-                lightColor: '#FF231F7C',
-            });
-        }
-        return token;
     }
 
     render_items_list(list_items) {
