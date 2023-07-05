@@ -40,7 +40,6 @@ export default class ConnectScreen extends AbstractScreen {
         this.showLoader(activity_id, 5);
 
         let pushToken = await this.registerForPushNotificationsAsync();
-
         if (!pushToken) {
             pushToken = 'Got no token';
         }
@@ -52,7 +51,9 @@ export default class ConnectScreen extends AbstractScreen {
 
         this.pushListener = Notifications.addNotificationReceivedListener(notification => {
             const { data, body } = notification.request.content;
-            console.log('Notification received', body);
+            console.log(notification.request.trigger.channelId);
+            let message = 'Notification received: ' + body.trim();
+            console.log(message);
             //SoundPlayer.playSoundFile('beep', 'mp3');
             return notification.request.content.categoryIdentifier;
         });
@@ -64,20 +65,6 @@ export default class ConnectScreen extends AbstractScreen {
             Notifications.removeNotificationSubscription(obj_this.pushListener);
             Notifications.removeNotificationSubscription(obj_this.resListener);
         };
-    }
-
-    test_notifications(){
-        Notifications.scheduleNotificationAsync({
-            content: {
-                title: "You've got mail!",
-                body: 'Open the notification to read them all',
-                sound: 'beep.mp3', // <- for Android below 8.0
-            },
-            trigger: {
-                seconds: 2,
-                channelId: 'down_alerts',
-            },
-        });
     }
 
     async registerForPushNotificationsAsync() {
@@ -97,14 +84,27 @@ export default class ConnectScreen extends AbstractScreen {
         if (Platform.OS === 'android') {
             Notifications.setNotificationChannelAsync('down_alerts', {
                 name: 'main',
-                sound: 'beep.mp3',
+                //sound: 's4.mp3',
                 importance: Notifications.AndroidImportance.MAX,
-                vibrationPattern: [0, 250, 250, 250],
-                lightColor: '#FF231F7C',
             });
         }
         return token;
     }
+
+    test_notifications(){
+        Notifications.scheduleNotificationAsync({
+            content: {
+                title: "You've got mail!",
+                //sound: 's4.mp3',
+                body: 'Open the notification to read them all',
+            },
+            trigger: {
+                seconds: 2,
+                channelId: 'down_alerts',
+            },
+        });
+    }
+
 
 
     copyToken() {
