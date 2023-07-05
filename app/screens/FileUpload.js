@@ -1,11 +1,16 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
+import SoundPlayer from 'react-native-sound-player';
 import AbstractScreen from '../AbstractScreen';
 import ImageInput from '../components/ImageInput';
 
 export default class FileUpload extends AbstractScreen {
     constructor() {
         super('');
+    }
+
+    playSound() {
+        SoundPlayer.playSoundFile('beep', 'mp3');
     }
 
     upload_images(im_list, after_upload) {

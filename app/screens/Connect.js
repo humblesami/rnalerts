@@ -8,11 +8,11 @@ import rnStorage from '../services/rnStorage';
 import AppButton from '../components/Button';
 import AbstractScreen from '../AbstractScreen';
 
-
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
         shouldShowAlert: true,
         shouldPlaySound: true,
+        shouldSetBadge: false,
     }),
 });
 
@@ -28,7 +28,7 @@ export default class ConnectScreen extends AbstractScreen {
             subscriptions: [],
             copyBtnLabel: 'Copy token',
         };
-        for(let prop in home_state){
+        for (let prop in home_state) {
             this.state[prop] = home_state[prop];
         }
     }
@@ -38,21 +38,26 @@ export default class ConnectScreen extends AbstractScreen {
         this.st_upd = 0;
         let activity_id = '/device/register';
         this.showLoader(activity_id, 5);
-        this.registerForPushNotificationsAsync().then(pushToken=>{
+        this.registerForPushNotificationsAsync().then(pushToken => {
             if (!pushToken) {
                 pushToken = 'Got no token';
             }
             obj_this.state.expoToken = pushToken;
             obj_this.hideLoader(activity_id);
-            if(pushToken != 'Got no token') {
+            if (pushToken != 'Got no token') {
                 obj_this.submit_token(pushToken);
             }
-        }).catch(er8=>{
+        }).catch(er8 => {
             obj_this.state.expoToken = '' + er8;
             obj_this.hideLoader(activity_id);
         });
 
-        this.pushListener = Notifications.addNotificationReceivedListener(notification => notification.request.content.categoryIdentifier);
+        this.pushListener = Notifications.addNotificationReceivedListener(notification => {
+            const { data, body } = notification.request.content;
+            console.log(data, body);
+            //SoundPlayer.playSoundFile('beep', 'mp3');
+            return notification.request.content.categoryIdentifier;
+        });
         this.resListener = Notifications.addNotificationResponseReceivedListener(response => response.notification.request.content);
         return () => {
             Notifications.removeNotificationSubscription(obj_this.pushListener);
@@ -63,27 +68,23 @@ export default class ConnectScreen extends AbstractScreen {
     copyToken() {
         Clipboard.setString(this.state.expoToken);
         this.setParentState({ copyBtnLabel: 'Copied' }, 'token copied');
-    };
-
-    playSound() {
-        SoundPlayer.playSoundFile('beep', 'mp3');
     }
 
     async toggleNotification(notification_source) {
         let item = this.state.subscriptions.find((x) => x.channel__name == notification_source);
         item.active = !item.active;
         let endpoint = '/expo/toggle';
-        let data = {channel: notification_source, push_token: this.state.expoToken};
+        let data = { channel: notification_source, push_token: this.state.expoToken };
         let api_client = this.create_api_request();
-        api_client.on_api_success = function(res_data) {
+        api_client.on_api_success = function (res_data) {
             let temp1 = 'subscribed';
-            if(!res_data.active){ temp1 = 'unsubscribed'; }
+            if (!res_data.active) { temp1 = 'unsubscribed'; }
             //obj_this.showAlert('Success', temp1);
         }
         api_client.post_data(endpoint, data);
     }
 
-    async submit_token(obtained_token, endpoint='') {
+    async submit_token(obtained_token, endpoint = '') {
         if (!obtained_token) {
             alert('No token provided');
             return;
@@ -92,25 +93,25 @@ export default class ConnectScreen extends AbstractScreen {
         if (!endpoint) endpoint = '/expo/submit';
         let api_options = {
             time_limit: 15,
-            header_tokens:{token_type: 'auth'}
+            header_tokens: { token_type: 'auth' }
         };
         let api_client = this.create_api_request();
-        api_client.on_api_success = function(res_data){
+        api_client.on_api_success = function (res_data) {
             obj_this.site_tokens[api_client.api_server_url].auth_token = res_data.auth_token;
             obj_this.onTokenSubmitted(res_data, obtained_token);
         };
-        api_client.on_api_error = function(error_message) {
+        api_client.on_api_error = function (error_message) {
             obj_this.showAlert('Warning', error_message);
         }
         api_client.post_data(endpoint, { posted_token: obtained_token });
     }
 
-    onTokenSubmitted(res_data, obtained_token){
+    onTokenSubmitted(res_data, obtained_token) {
         let warn_message = 'No active channels found';
         if (!res_data.channels.length) {
             this.showAlert('Warning', warn_message);
         }
-        this.setParentState({ subscriptions: res_data.channels}, 'render subscriptions');
+        this.setParentState({ subscriptions: res_data.channels }, 'render subscriptions');
         rnStorage.save('push_token', obtained_token).then(() => { });
         rnStorage.save('auth_token', res_data.auth_token).then(() => { });
         console.log('Authorized with => ' + obtained_token);
@@ -133,6 +134,7 @@ export default class ConnectScreen extends AbstractScreen {
         if (Platform.OS === 'android') {
             Notifications.setNotificationChannelAsync('down_alerts', {
                 name: 'main',
+                sound: 'beep.mp3',
                 importance: Notifications.AndroidImportance.MAX,
                 vibrationPattern: [0, 250, 250, 250],
                 lightColor: '#FF231F7C',
@@ -192,25 +194,25 @@ export default class ConnectScreen extends AbstractScreen {
                         <Text>{name}</Text>
                     </View>
                     <View>
-                    {
-                        list_items.map(function (item, j) {
-                            let title = "Subscribe => " + item.channel__name;
-                            if (item.active) {
-                                title = "Unsubscribe => " + item.channel__name;
-                                btn_bgcolor = undefined;
-                            }
-                            else{
-                                btn_bgcolor = 'orange';
-                            }
-                            return (
-                                <View key={j}>
-                                    <AppButton color={btn_bgcolor} title={title} onPress={() => {
-                                        obj_this.toggleNotification(item.channel__name);
-                                    }}/>
-                                </View>
-                            )
-                        })
-                    }
+                        {
+                            list_items.map(function (item, j) {
+                                let title = "Subscribe => " + item.channel__name;
+                                if (item.active) {
+                                    title = "Unsubscribe => " + item.channel__name;
+                                    btn_bgcolor = undefined;
+                                }
+                                else {
+                                    btn_bgcolor = 'orange';
+                                }
+                                return (
+                                    <View key={j}>
+                                        <AppButton color={btn_bgcolor} title={title} onPress={() => {
+                                            obj_this.toggleNotification(item.channel__name);
+                                        }} />
+                                    </View>
+                                )
+                            })
+                        }
                     </View>
                 </View>
             );
