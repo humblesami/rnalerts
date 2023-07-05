@@ -7,7 +7,6 @@ import styles from '../styles/main';
 import rnStorage from '../services/rnStorage';
 import AppButton from '../components/Button';
 import AbstractScreen from '../AbstractScreen';
-import ImageInput from '../components/ImageInput';
 
 
 Notifications.setNotificationHandler({
@@ -19,6 +18,7 @@ Notifications.setNotificationHandler({
 
 export default class ConnectScreen extends AbstractScreen {
     constructor(api_base_url) {
+        console.log(222, api_base_url);
         super(api_base_url);
         this.resListener = {};
         this.pushListener = {};
@@ -146,28 +146,6 @@ export default class ConnectScreen extends AbstractScreen {
         return token;
     }
 
-    upload_images(im_list, after_upload) {
-        let obj_this = this;
-        const form_data = new FormData();
-        let i = 0;
-        for (let item of im_list) {
-            form_data.append('img1__mt__'+i, {
-                name: item.fileName,
-                type: item.type,
-                uri: Platform.OS === 'ios' ? item.uri.replace('file://', '') : item.uri,
-            });
-            i++;
-        }
-        // Object.keys(body).forEach((key) => {
-        //     form_data.append(key, body[key]);
-        // });
-        obj_this.apiClient.on_api_success = function(res_data){ after_upload(res_data, im_list) };
-        obj_this.apiClient.on_api_failed = after_upload;
-        let endpoint = '/expo/test-upload';
-        obj_this.apiClient.post_data(endpoint, form_data);
-    }
-
-
     render_items_list(list_items) {
         function get_item_style(status, item_url) {
             if (!status) {
@@ -244,7 +222,6 @@ export default class ConnectScreen extends AbstractScreen {
         }
         let child_view = (
             <View>
-                <ImageInput onChangeImage={(images, after_upload) => { obj_this.upload_images(images, after_upload) }} />
                 <Text selectable={true}>Obtained Token: {obj_this.state.expoToken || 'Obtaining token'}</Text>
                 <AppButton onPress={() => { obj_this.copyToken() }} title={obj_this.state.copyBtnLabel} />
                 {render_notitifcation_sources(obj_this.state.subscriptions, 'Subscriptions')}
