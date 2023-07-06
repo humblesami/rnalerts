@@ -109,14 +109,6 @@ export default class AbstractScreen extends React.Component {
         if (!keep_state && Object.keys(this.state.loading).length == 1) {
             this.setParentState({}, 'init ' + activity_id);
         }
-        setTimeout(() => {
-            if (obj_this.state.loading[activity_id]) {
-                let message = 'Removed loader\n' + activity_id + '\n after waiting ' + time_limit + ' seconds';
-                message += ' Service timed out ' + (time_limit - obj_this.apiClient.fetch_timeout) + ' seconds ago';
-                alert(message);
-                obj_this.hideLoader(activity_id);
-            }
-        }, (time_limit * 1000) + 1000);
     }
 
     setParentState(values, source = 'unknown') {

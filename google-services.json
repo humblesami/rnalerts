@@ -20,8 +20,36 @@
             ],
             "api_key": [
                 {
-                    "current_key": "AIzaSyCU_U7npSZwnii-2__id6TY86laX0pAzdg",
-                    "current_key2": "AAAAESHut6U:APA91bEsZhDfm-b8GfZMVGXbkn_diHmwjim7tZH4riFMBwJQftx5JAspq5gL4yI7cfXY5G5rcAOHmhzCD8GKlWGaBF7RGuVH_ienZm8u3JUR4QD5icoZcpJlxnFXN8kIM2zdbnD0xLpj"
+                    "current_key": "AIzaSyCU_U7npSZwnii-2__id6TY86laX0pAzdg"
+                }
+            ],
+            "services": {
+                "appinvite_service": {
+                    "other_platform_oauth_client": [
+                        {
+                            "client_id": "73583736741-4eesb9rb7c4l3hnf2f9tspcicet19v7h.apps.googleusercontent.com",
+                            "client_type": 3
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "client_info": {
+                "mobilesdk_app_id": "1:73583736741:android:9d75b37f0200505f695a4c",
+                "android_client_info": {
+                    "package_name": "com.news92.alters"
+                }
+            },
+            "oauth_client": [
+                {
+                    "client_id": "73583736741-4eesb9rb7c4l3hnf2f9tspcicet19v7h.apps.googleusercontent.com",
+                    "client_type": 3
+                }
+            ],
+            "api_key": [
+                {
+                    "current_key": "AIzaSyCU_U7npSZwnii-2__id6TY86laX0pAzdg"
                 }
             ],
             "services": {

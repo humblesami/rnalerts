@@ -51,10 +51,10 @@ export default class ConnectScreen extends AbstractScreen {
 
         this.pushListener = Notifications.addNotificationReceivedListener(notification => {
             const { data, body } = notification.request.content;
-            console.log(notification.request.trigger.channelId);
-            let message = 'Notification received: ' + body.trim();
-            console.log(message);
-            //SoundPlayer.playSoundFile('beep', 'mp3');
+            let message = body.trim();
+            let channel = notification.request.trigger.channelId;
+            console.log(channel + ' received => '+message);
+            console.log("\n", notification);
             return notification.request.content.categoryIdentifier;
         });
         this.resListener = Notifications.addNotificationResponseReceivedListener(response => response.notification.request.content);
@@ -84,22 +84,21 @@ export default class ConnectScreen extends AbstractScreen {
         if (Platform.OS === 'android') {
             Notifications.setNotificationChannelAsync('down_alerts', {
                 name: 'main',
-                //sound: 's4.mp3',
+                sound: 's4.mp3',
                 importance: Notifications.AndroidImportance.MAX,
             });
         }
         return token;
     }
 
-    test_notifications(){
+    test_notifications() {
         Notifications.scheduleNotificationAsync({
             content: {
                 title: "You've got mail!",
-                //sound: 's4.mp3',
                 body: 'Open the notification to read them all',
             },
             trigger: {
-                seconds: 2,
+                seconds: 1,
                 channelId: 'down_alerts',
             },
         });

@@ -1,8 +1,9 @@
 {
     "expo": {
-        "name": "Exponent Alerts",
-        "slug": "DoneWithIt",
+        "name": "ExponentAlerts",
+        "slug": "ExponentAlerts",
         "platforms": ["ios", "android", "web"],
+        "useNextNotificationsApi": true,
         "plugins": [
             [
                 "expo-notifications",
