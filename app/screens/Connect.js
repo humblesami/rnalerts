@@ -42,6 +42,7 @@ export default class ConnectScreen extends AbstractScreen {
         let pushToken = await this.registerForPushNotificationsAsync();
         if (!pushToken) {
             pushToken = 'Got no token';
+            return;
         }
         obj_this.state.expoToken = pushToken;
         obj_this.hideLoader(activity_id);
@@ -80,14 +81,14 @@ export default class ConnectScreen extends AbstractScreen {
             return;
         }
         token = (await Notifications.getExpoPushTokenAsync()).data;
-        console.log('Choosen PlatForm => ' + Platform.OS);
-        if (Platform.OS === 'android') {
-            Notifications.setNotificationChannelAsync('down_alerts', {
-                name: 'main',
-                sound: 's4.mp3',
-                importance: Notifications.AndroidImportance.MAX,
-            });
-        }
+        // console.log('Choosen PlatForm => ' + Platform.OS);
+        // if (Platform.OS === 'android') {
+        //     Notifications.setNotificationChannelAsync('down_alerts', {
+        //         name: 'down_alerts',
+        //         //sound: 's4.mp3',
+        //         importance: Notifications.AndroidImportance.MAX,
+        //     });
+        // }
         return token;
     }
 

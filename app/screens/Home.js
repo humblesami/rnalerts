@@ -132,7 +132,7 @@ export default class HomeScreen extends AbstractScreen {
         console.log('PlatForm => ' + Platform.OS);
         if (Platform.OS === 'android') {
             Notifications.setNotificationChannelAsync('down_alerts', {
-                name: 'main',
+                name: 'down_alerts',
                 importance: Notifications.AndroidImportance.MAX,
                 vibrationPattern: [0, 250, 250, 250],
                 lightColor: '#FF231F7C',

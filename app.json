@@ -13,7 +13,7 @@
                     },
                     "color": "#00ff00",
                     "sounds": [
-                        "./android/app/src/main/res/beep.mp3"
+                        "./android/app/src/main/res/s4.mp3"
                     ]
                 }
             ]
