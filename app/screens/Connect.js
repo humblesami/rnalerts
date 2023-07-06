@@ -59,7 +59,7 @@ export default class ConnectScreen extends AbstractScreen {
         });
         this.resListener = Notifications.addNotificationResponseReceivedListener(response => response.notification.request.content);
 
-        this.test_notifications();
+        //this.test_notifications();
 
         return () => {
             Notifications.removeNotificationSubscription(obj_this.pushListener);
@@ -147,6 +147,7 @@ export default class ConnectScreen extends AbstractScreen {
     }
 
     onTokenSubmitted(res_data, obtained_token) {
+        console.log('Parent submitted');
         let warn_message = 'No active channels found';
         if (!res_data.channels.length) {
             this.showAlert('Warning', warn_message);

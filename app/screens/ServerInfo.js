@@ -16,19 +16,8 @@ export default class ServerInfoScreen extends ConnectScreen {
         ];
     }
 
-    async submit_token(obtained_token) {
-        if (!obtained_token) {
-            alert('No token provided');
-            return;
-        }
-        let obj_this = this;
-        obj_this.apiClient.on_api_success = function(res_data){
-            obj_this.onTokenSubmitted(res_data);
-        };
-        super.submit_token(obtained_token, '/servers/submit');
-    }
-
     onTokenSubmitted(res_data, obtained_token){
+        console.log('Child submitted');
         super.onTokenSubmitted(res_data, obtained_token);
         let updated_list = res_data.servers_list || [];
         this.setParentState({ subscriptions: res_data.channels, servers_list: updated_list}, 'render subscriptions');
