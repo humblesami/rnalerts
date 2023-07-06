@@ -22,22 +22,15 @@ public class MainActivity extends ReactActivity {
         // This is required for expo-splash-screen.
         setTheme(R.style.AppTheme);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            //AudioAttributes att = new AudioAttributes.Builder()
-            //.setUsage(AudioAttributes.USAGE_NOTIFICATION)
-            //.setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build();
-
             String channelId = "down_alerts";
             int importance = NotificationManager.IMPORTANCE_HIGH;
             NotificationChannel channel = new NotificationChannel(channelId, channelId, importance);
-
             channel.enableVibration(true);
             channel.setVibrationPattern(new long[] { 400, 400 });
             channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
-
             String adroind_resource = ContentResolver.SCHEME_ANDROID_RESOURCE;
             Uri soundUri = Uri.parse(adroind_resource + "://" + getPackageName() + "/raw/s4");
             channel.setSound(soundUri, null);
-
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
         }

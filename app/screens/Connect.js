@@ -38,17 +38,16 @@ export default class ConnectScreen extends AbstractScreen {
         this.st_upd = 0;
         let activity_id = '/device/register';
         this.showLoader(activity_id, 5);
-
-        let pushToken = await this.registerForPushNotificationsAsync();
-        if (!pushToken) {
-            pushToken = 'Got no token';
+        let not_permitted = '403 Notifications not permitted';
+        let pushToken = await this.registerForPushNotificationsAsync(not_permitted);
+        obj_this.state.expoToken = pushToken;
+        if (!pushToken || pushToken == not_permitted) {
+            obj_this.hideLoader(activity_id);
+            alert('Notification access is not granted!');
             return;
         }
-        obj_this.state.expoToken = pushToken;
         obj_this.hideLoader(activity_id);
-        if (pushToken != 'Got no token') {
-            obj_this.submit_token(pushToken);
-        }
+        obj_this.submit_token(pushToken);
 
         this.pushListener = Notifications.addNotificationReceivedListener(notification => {
             const { data, body } = notification.request.content;
@@ -68,7 +67,7 @@ export default class ConnectScreen extends AbstractScreen {
         };
     }
 
-    async registerForPushNotificationsAsync() {
+    async registerForPushNotificationsAsync(not_permitted) {
         let token;
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
@@ -77,8 +76,7 @@ export default class ConnectScreen extends AbstractScreen {
             finalStatus = status;
         }
         if (finalStatus !== 'granted') {
-            alert('Notification access is not granted!');
-            return;
+            return not_permitted;
         }
         token = (await Notifications.getExpoPushTokenAsync()).data;
         // console.log('Choosen PlatForm => ' + Platform.OS);
