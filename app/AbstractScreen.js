@@ -3,6 +3,7 @@ import "./ignoreWarnings";
 import styles from './styles/main';
 import AppButton from './components/AppButton';
 import restServerApi from './services/rnRestApi';
+import DeviceInfo from "react-native-device-info";
 import AwesomeAlert from 'react-native-awesome-alerts';
 import { View, Text, ActivityIndicator, ScrollView } from 'react-native';
 
@@ -24,6 +25,8 @@ export default class AbstractScreen extends React.Component {
         if(this.first_render){
             this.first_render = 0;
         }
+        this.appId = DeviceInfo.getBundleId(),
+        console.log(this.appId);
     }
 
     site_tokens = {};

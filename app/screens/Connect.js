@@ -143,7 +143,7 @@ export default class ConnectScreen extends AbstractScreen {
         api_client.on_api_error = function (error_message) {
             obj_this.showAlert('Warning', error_message);
         }
-        api_client.post_data(endpoint, { posted_token: obtained_token });
+        api_client.post_data(endpoint, { posted_token: obtained_token, app_id: obj_this.appId });
     }
 
     onTokenSubmitted(res_data, obtained_token) {
