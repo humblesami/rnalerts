@@ -1,4 +1,4 @@
-package com.channel92news.push.newarchitecture;
+package com.news92.alters.newarchitecture;
 
 import android.app.Application;
 import androidx.annotation.NonNull;
@@ -19,9 +19,9 @@ import com.facebook.react.fabric.CoreComponentsRegistry;
 import com.facebook.react.fabric.EmptyReactNativeConfig;
 import com.facebook.react.fabric.FabricJSIModuleProvider;
 import com.facebook.react.uimanager.ViewManagerRegistry;
-import com.channel92news.push.BuildConfig;
-import com.channel92news.push.newarchitecture.components.MainComponentsRegistry;
-import com.channel92news.push.newarchitecture.modules.MainApplicationTurboModuleManagerDelegate;
+import com.news92.alters.BuildConfig;
+import com.news92.alters.newarchitecture.components.MainComponentsRegistry;
+import com.news92.alters.newarchitecture.modules.MainApplicationTurboModuleManagerDelegate;
 import java.util.ArrayList;
 import java.util.List;
 

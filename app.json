@@ -1,6 +1,6 @@
 {
     "expo": {
-        "name": "ExponentAlerts",
+        "name": "92Alerts",
         "slug": "DoneWithIt",
         "platforms": ["ios", "android", "web"],
         "useNextNotificationsApi": true,
@@ -33,12 +33,12 @@
             "**/*"
         ],
         "android": {
-            "package": "com.channel92news.push",
+            "package": "com.news92.alters",
             "googleServicesFile": "./google-services.json"
         },
         "ios": {
             "supportsTablet": true,
-            "bundleIdentifier": "com.channel92news.push"
+            "bundleIdentifier": "com.news92.alters"
         },
         "extra": {
             "eas": {

@@ -1,4 +1,4 @@
-package com.channel92news.push;
+package com.news92.alters;
 
 import android.net.Uri;
 import android.os.Build;

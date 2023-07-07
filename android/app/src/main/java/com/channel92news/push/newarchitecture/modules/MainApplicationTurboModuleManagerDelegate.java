@@ -1,4 +1,4 @@
-package com.channel92news.push.newarchitecture.modules;
+package com.news92.alters.newarchitecture.modules;
 
 import com.facebook.jni.HybridData;
 import com.facebook.react.ReactPackage;
