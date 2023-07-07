@@ -1,4 +1,4 @@
-# Done-With-It-App
+# 92 Alerts
 A React Native app for students to sell properties they have no use for
 
 # Backend
