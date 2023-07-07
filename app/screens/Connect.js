@@ -23,6 +23,7 @@ export default class ConnectScreen extends AbstractScreen {
         this.pushListener = {};
         let home_state = {
             tokenSent: 0,
+            server_url: api_base_url,
             expoToken: '',
             loading: {},
             subscriptions: [],
@@ -234,6 +235,7 @@ export default class ConnectScreen extends AbstractScreen {
         }
         let child_view = (
             <View>
+                <Text>Server: {this.state.server_url }</Text>
                 <Text selectable={true}>Obtained Token: {this.state.expoToken || 'Obtaining token'}</Text>
                 <AppButton onPress={() => { this.copyToken() }} title={this.state.copyBtnLabel} />
                 {render_notitifcation_sources(this.state.subscriptions, 'Subscriptions')}
